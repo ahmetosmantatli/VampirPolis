@@ -248,6 +248,115 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 8px #ddd;
+}
+
+/* ==================== MOBİL RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .poker-table-3d {
+    width: 95vw;
+    max-width: 600px;
+    height: 400px;
+    bottom: 10vh;
+  }
+
+  .table-surface {
+    padding: 20px;
+  }
+
+  .back-wall {
+    height: 25vh;
+    padding: 10px;
+  }
+
+  .wall-corner {
+    width: 150px;
+  }
+
+  .poster {
+    width: 120px;
+    height: 150px;
+  }
+
+  .poster-frame {
+    border: 4px solid #8b4513;
+  }
+
+  .poster-content {
+    font-size: 40px;
+  }
+
+  .poster-text {
+    font-size: 14px;
+  }
+
+  .room-code {
+    font-size: 24px;
+    letter-spacing: 4px;
+  }
+
+  .player-count {
+    font-size: 14px;
+  }
+
+  .cards-row {
+    gap: 10px;
+    bottom: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 90vw;
+  }
+
+  .playing-card {
+    width: 70px;
+    height: 105px;
+  }
+
+  .player-label {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .poker-table-3d {
+    width: 98vw;
+    height: 350px;
+  }
+
+  .back-wall {
+    height: 20vh;
+  }
+
+  .wall-corner {
+    width: 100px;
+  }
+
+  .poster {
+    width: 80px;
+    height: 100px;
+  }
+
+  .poster-content {
+    font-size: 30px;
+  }
+
+  .poster-text {
+    font-size: 10px;
+  }
+
+  .room-code {
+    font-size: 20px;
+    letter-spacing: 2px;
+  }
+
+  .playing-card {
+    width: 60px;
+    height: 90px;
+  }
+
+  .cards-row {
+    gap: 8px;
+  }
+}
   transform: rotateY(0deg);
 }
 

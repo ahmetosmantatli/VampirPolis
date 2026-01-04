@@ -99,6 +99,78 @@
   margin-top: 10px;
 }
 
+/* ==================== MOBİL RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .day-modal {
+    padding: 25px;
+    max-width: 95%;
+  }
+
+  .day-header h2 {
+    font-size: 28px;
+  }
+
+  .result-text {
+    font-size: 16px;
+  }
+
+  .player-name {
+    font-size: 22px;
+  }
+
+  .skull-icon {
+    font-size: 36px;
+  }
+
+  .status-text {
+    font-size: 14px;
+  }
+
+  .saved-text {
+    font-size: 16px;
+  }
+
+  .vote-button {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .timer {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .day-modal {
+    padding: 20px;
+  }
+
+  .day-header h2 {
+    font-size: 24px;
+  }
+
+  .result-text {
+    font-size: 14px;
+  }
+
+  .player-name {
+    font-size: 18px;
+  }
+
+  .skull-icon {
+    font-size: 30px;
+  }
+
+  .vote-button {
+    padding: 10px 15px;
+    font-size: 12px;
+  }
+
+  .timer {
+    font-size: 18px;
+  }
+}
+
 /* Voting Info */
 .voting-info {
   background: rgba(255, 165, 0, 0.2);

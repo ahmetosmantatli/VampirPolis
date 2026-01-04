@@ -98,6 +98,75 @@
 .waiting-subtext {
   font-size: 16px;
   color: #999;
+}
+
+/* ==================== MOBİL RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .night-modal {
+    padding: 25px;
+    max-width: 95%;
+  }
+
+  .night-header h2 {
+    font-size: 24px;
+  }
+
+  .night-turn {
+    font-size: 14px;
+  }
+
+  .role-icon {
+    font-size: 60px;
+  }
+
+  .role-announcement h3 {
+    font-size: 20px;
+  }
+
+  .role-announcement p {
+    font-size: 16px;
+  }
+
+  .waiting-text {
+    font-size: 18px;
+  }
+
+  .waiting-subtext {
+    font-size: 14px;
+  }
+
+  .target-button {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .night-modal {
+    padding: 20px;
+  }
+
+  .night-header h2 {
+    font-size: 20px;
+  }
+
+  .role-icon {
+    font-size: 50px;
+  }
+
+  .role-announcement h3 {
+    font-size: 18px;
+  }
+
+  .role-announcement p {
+    font-size: 14px;
+  }
+
+  .target-button {
+    padding: 10px 15px;
+    font-size: 12px;
+  }
+}
   margin-top: 10px;
 }
 
