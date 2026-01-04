@@ -1,0 +1,340 @@
+/* Day Phase Overlay */
+.day-phase-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
+}
+
+.day-modal {
+  background: linear-gradient(135deg, #3e2a1a 0%, #2a1a0a 100%);
+  border: 3px solid #ffa500;
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 800px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 0 50px rgba(255, 165, 0, 0.5);
+  animation: modalSlideIn 0.5s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Day Header */
+.day-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.day-header h2 {
+  color: #ffa500;
+  font-size: 36px;
+  margin: 0 0 10px 0;
+  text-shadow: 0 0 20px rgba(255, 165, 0, 0.6);
+}
+
+/* Night Result */
+.night-result {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.result-text {
+  color: #ffcccc;
+  font-size: 20px;
+  margin: 10px 0;
+}
+
+.killed-player-box {
+  background: rgba(139, 0, 0, 0.6);
+  border: 3px solid #ff4444;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.skull-icon {
+  font-size: 48px;
+}
+
+.player-name {
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.status-text {
+  color: #ffcccc;
+  font-size: 16px;
+}
+
+.saved-text {
+  color: #90ee90;
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* Voting Info */
+.voting-info {
+  background: rgba(255, 165, 0, 0.2);
+  border: 2px solid #ffa500;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.voting-info h3 {
+  color: #ffa500;
+  font-size: 24px;
+  margin: 0 0 10px 0;
+}
+
+.voting-info p {
+  color: #fff;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Start Voting Button */
+.start-voting-btn {
+  width: 100%;
+  padding: 20px;
+  font-size: 24px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+}
+
+.start-voting-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 165, 0, 0.8);
+}
+
+.waiting-text {
+  color: #ccc;
+  font-size: 16px;
+  margin: 10px 0;
+  text-align: center;
+}
+
+/* Voting Header (Gece Fazı Gibi) */
+.voting-header {
+  text-align: center;
+  margin-bottom: 30px;
+  border-bottom: 3px solid #4d94ff;
+  padding-bottom: 20px;
+}
+
+.voting-header h2 {
+  color: #fff;
+  font-size: 32px;
+  margin: 0 0 10px 0;
+  text-shadow: 0 0 20px rgba(77, 148, 255, 0.8);
+}
+
+.voting-subtitle {
+  color: #aaa;
+  font-size: 18px;
+}
+
+/* Voting Content */
+.voting-content {
+  text-align: center;
+}
+
+/* Voting Announcement */
+.voting-announcement {
+  margin-bottom: 30px;
+}
+
+.voting-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 20px rgba(77, 148, 255, 0.5));
+}
+
+.voting-announcement h3 {
+  color: #b3d9ff;
+  font-size: 28px;
+  margin: 0 0 15px 0;
+  text-shadow: 0 0 15px rgba(77, 148, 255, 0.6);
+}
+
+.voting-announcement p {
+  color: #ccc;
+  font-size: 20px;
+  margin: 5px 0;
+}
+
+/* Selection Button */
+.voting-selection-btn {
+  padding: 20px 60px;
+  background: linear-gradient(135deg, #4d94ff 0%, #3366cc 100%);
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  border: 3px solid #66a3ff;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 30px rgba(77, 148, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.voting-selection-btn:hover {
+  background: linear-gradient(135deg, #66a3ff 0%, #4d94ff 100%);
+  transform: scale(1.05);
+  box-shadow: 0 0 40px rgba(77, 148, 255, 0.8);
+}
+
+/* Target Selection */
+.voting-target-selection {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.voting-target-selection h4 {
+  color: #fff;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+/* Targets List */
+.voting-targets-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.voting-target-card {
+  background: linear-gradient(145deg, #2a3a5e 0%, #1a2a4e 100%);
+  border: 3px solid #555;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.voting-target-card:hover {
+  border-color: #4d94ff;
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(77, 148, 255, 0.5);
+}
+
+.voting-target-card.selected {
+  border-color: #4d94ff;
+  background: linear-gradient(145deg, #1a3a5a 0%, #0a2a4a 100%);
+  box-shadow: 0 0 30px rgba(77, 148, 255, 0.8);
+}
+
+.voting-target-name {
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.voting-selected-indicator {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #4d94ff;
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 3px solid #fff;
+  box-shadow: 0 0 15px rgba(77, 148, 255, 0.8);
+}
+
+/* Confirm Button */
+.voting-confirm-btn {
+  padding: 15px 50px;
+  background: linear-gradient(135deg, #44ff44 0%, #00cc00 100%);
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  border: 3px solid #66ff66;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 25px rgba(68, 255, 68, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.voting-confirm-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #66ff66 0%, #44ff44 100%);
+  transform: scale(1.05);
+  box-shadow: 0 0 35px rgba(68, 255, 68, 0.8);
+}
+
+.voting-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.voting-confirm-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Scrollbar */
+.day-modal::-webkit-scrollbar {
+  width: 10px;
+}
+
+.day-modal::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.day-modal::-webkit-scrollbar-thumb {
+  background: #ffa500;
+  border-radius: 10px;
+}
+
+.day-modal::-webkit-scrollbar-thumb:hover {
+  background: #ffb52e;
+}

@@ -1,0 +1,261 @@
+/* Hunter Phase Overlay - Arka planda masa görünür */
+.hunter-phase-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+.hunter-phase {
+  width: 90%;
+  max-width: 600px;
+  background: linear-gradient(135deg, #2d1b1b 0%, #4a1010 50%, #2d1b1b 100%);
+  border: 3px solid #ff4500;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 0 50px rgba(255, 69, 0, 0.6),
+              0 0 100px rgba(255, 69, 0, 0.3);
+  animation: hunterPulse 3s ease-in-out infinite, hunterAppear 0.6s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes hunterPulse {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hunter-container {
+  width: 100%;
+  text-align: center;
+}
+
+@keyframes hunterAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hunter-title-section {
+  margin-bottom: 25px;
+  animation: titleFlash 2s ease-in-out infinite;
+}
+
+@keyframes titleFlash {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(255, 69, 0, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(255, 69, 0, 0.9));
+  }
+}
+
+.hunter-title {
+  font-size: 2.5em;
+  color: #ff4500;
+  text-shadow: 0 0 20px rgba(255, 69, 0, 0.8),
+               0 0 40px rgba(255, 69, 0, 0.4);
+  margin: 0;
+  letter-spacing: 2px;
+  font-weight: bold;
+}
+
+.hunter-subtitle {
+  color: #ff6347;
+  font-size: 1.1em;
+  margin-top: 10px;
+  text-shadow: 0 0 10px rgba(255, 99, 71, 0.5);
+  font-style: italic;
+}
+
+.hunter-targets {
+  margin-bottom: 30px;
+}
+
+.hunter-targets h2 {
+  color: #fff;
+  font-size: 1.5em;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+  padding: 10px;
+}
+
+.target-card {
+  background: linear-gradient(145deg, #3a1515, #2a1010);
+  border: 2px solid #5a2020;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.target-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 69, 0, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.target-card:hover::before {
+  left: 100%;
+}
+
+.target-card:hover {
+  border-color: #ff4500;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(255, 69, 0, 0.4);
+}
+
+.target-card.selected {
+  background: linear-gradient(145deg, #5a1010, #4a0000);
+  border-color: #ff4500;
+  border-width: 3px;
+  box-shadow: 0 0 30px rgba(255, 69, 0, 0.6),
+              inset 0 0 20px rgba(255, 69, 0, 0.2);
+  animation: targetSelected 0.5s ease;
+}
+
+@keyframes targetSelected {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.target-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.target-icon {
+  font-size: 3em;
+  margin-bottom: 10px;
+  filter: grayscale(0.3);
+}
+
+.target-card.selected .target-icon {
+  filter: grayscale(0);
+  animation: iconBounce 0.6s ease infinite;
+}
+
+@keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.target-name {
+  color: #fff;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.hunter-confirm-btn {
+  background: linear-gradient(135deg, #ff4500 0%, #ff6347 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 18px 50px;
+  font-size: 1.4em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 0 8px 20px rgba(255, 69, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.hunter-confirm-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.hunter-confirm-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.hunter-confirm-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(255, 69, 0, 0.6);
+}
+
+.hunter-confirm-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(255, 69, 0, 0.4);
+}
+
+.hunter-confirm-btn:disabled {
+  background: linear-gradient(135deg, #555 0%, #777 100%);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+/* Mobil uyumluluk */
+@media (max-width: 600px) {
+  .hunter-title {
+    font-size: 2.5em;
+  }
+
+  .hunter-subtitle {
+    font-size: 1.1em;
+  }
+
+  .target-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .hunter-confirm-btn {
+    padding: 15px 40px;
+    font-size: 1.2em;
+  }
+}

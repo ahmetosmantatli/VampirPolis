@@ -1,0 +1,244 @@
+/* Night Phase Overlay - Masa görünür kalır */
+.night-phase-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  backdrop-filter: blur(3px);
+}
+
+/* Modal */
+.night-modal {
+  background: linear-gradient(145deg, #1a1a2e 0%, #2a2a4e 100%);
+  border: 4px solid #4a4aff;
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 
+    0 0 50px rgba(74, 74, 255, 0.8),
+    0 20px 60px rgba(0, 0, 0, 0.9);
+  animation: modalSlideIn 0.5s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.night-header {
+  text-align: center;
+  margin-bottom: 30px;
+  border-bottom: 3px solid #4a4aff;
+  padding-bottom: 20px;
+}
+
+.night-header h2 {
+  color: #fff;
+  font-size: 32px;
+  margin: 0 0 10px 0;
+  text-shadow: 0 0 20px rgba(74, 74, 255, 0.8);
+}
+
+.night-turn {
+  color: #aaa;
+  font-size: 18px;
+}
+
+/* Content */
+.night-content {
+  text-align: center;
+}
+
+/* Role Announcement */
+.role-announcement {
+  margin-bottom: 30px;
+}
+
+.role-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
+}
+
+.role-announcement h3 {
+  color: #ffd700;
+  font-size: 28px;
+  margin: 0 0 15px 0;
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+}
+
+.role-announcement p {
+  color: #ccc;
+  font-size: 20px;
+  margin: 5px 0;
+}
+
+.waiting-text {
+  font-size: 24px;
+  color: #fff;
+  margin-top: 20px;
+}
+
+.waiting-subtext {
+  font-size: 16px;
+  color: #999;
+  margin-top: 10px;
+}
+
+/* Selection Button */
+.selection-btn {
+  padding: 20px 60px;
+  background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  border: 3px solid #ff6666;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 30px rgba(255, 68, 68, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.selection-btn:hover {
+  background: linear-gradient(135deg, #ff6666 0%, #ff4444 100%);
+  transform: scale(1.05);
+  box-shadow: 0 0 40px rgba(255, 68, 68, 0.8);
+}
+
+/* Target Selection */
+.target-selection {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.target-selection h4 {
+  color: #fff;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+/* Targets List */
+.targets-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.target-card {
+  background: linear-gradient(145deg, #2a2a3e 0%, #1a1a2e 100%);
+  border: 3px solid #555;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.target-card:hover {
+  border-color: #ff4444;
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(255, 68, 68, 0.5);
+}
+
+.target-card.selected {
+  border-color: #ff4444;
+  background: linear-gradient(145deg, #3a1a1a 0%, #2a0a0a 100%);
+  box-shadow: 0 0 30px rgba(255, 68, 68, 0.8);
+}
+
+.target-name {
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.selected-indicator {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #ff4444;
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 3px solid #fff;
+  box-shadow: 0 0 15px rgba(255, 68, 68, 0.8);
+}
+
+/* Confirm Button */
+.confirm-btn {
+  padding: 15px 50px;
+  background: linear-gradient(135deg, #44ff44 0%, #00cc00 100%);
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  border: 3px solid #66ff66;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 25px rgba(68, 255, 68, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.confirm-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #66ff66 0%, #44ff44 100%);
+  transform: scale(1.05);
+  box-shadow: 0 0 35px rgba(68, 255, 68, 0.8);
+}
+
+.confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.confirm-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Scrollbar */
+.night-modal::-webkit-scrollbar {
+  width: 10px;
+}
+
+.night-modal::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.night-modal::-webkit-scrollbar-thumb {
+  background: #4a4aff;
+  border-radius: 10px;
+}
+
+.night-modal::-webkit-scrollbar-thumb:hover {
+  background: #6a6aff;
+}
