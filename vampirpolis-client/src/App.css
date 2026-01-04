@@ -146,26 +146,65 @@ body, html, #root {
 }
 
 @media (max-width: 480px) {
+  .home-screen {
+    padding: 15px 8px;
+    overflow-y: auto;
+  }
+
   .game-title {
     font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+
+  .player-name-section {
+    margin-bottom: 15px;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
   }
 
   .room-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 0 5px;
   }
 
   .room-slot {
-    width: 130px;
-    height: 130px;
+    width: 100%;
+    max-width: 160px;
+    height: 110px;
+    padding: 8px;
+    border-width: 3px;
   }
 
   .room-slot-number {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
   }
 
   .room-slot-status {
+    font-size: 0.75rem;
+  }
+
+  .plus-icon {
+    font-size: 3rem;
+  }
+
+  .leader-name {
+    font-size: 1rem;
+    margin-top: 5px;
+  }
+
+  .slot-text {
+    font-size: 0.9rem;
+    margin-top: 5px;
+  }
+
+  .player-count-badge {
     font-size: 0.8rem;
+    padding: 4px 8px;
   }
 }
 
