@@ -78,18 +78,26 @@ function Lobby({ room, roomCode, playerName, onStartGameClick }) {
             padding: '20px',
             background: 'rgba(139, 92, 246, 0.1)',
             borderRadius: '15px',
-            border: '2px solid rgba(139, 92, 246, 0.3)'
+            border: '2px solid rgba(139, 92, 246, 0.3)',
+            width: '100%',
+            maxWidth: '600px'
           }}>
-            <h3 style={{ color: '#8b5cf6', marginBottom: '15px', fontSize: '1.3em' }}>
+            <h3 style={{ color: '#8b5cf6', marginBottom: '15px', fontSize: '1.3em', textAlign: 'center' }}>
               🎮 OYUN MODU SEÇ
             </h3>
-            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+            <div style={{ 
+              display: 'flex', 
+              gap: '15px', 
+              justifyContent: 'center',
+              flexWrap: 'wrap'
+            }}>
               <button
                 onClick={() => selectMode('Mode1')}
                 style={{
-                  flex: 1,
+                  flex: '1 1 200px',
+                  minWidth: '180px',
                   maxWidth: '250px',
-                  padding: '20px',
+                  padding: '20px 15px',
                   background: selectedMode === 'Mode1' 
                     ? 'linear-gradient(135deg, #10b981, #059669)' 
                     : 'rgba(255,255,255,0.1)',
@@ -111,9 +119,10 @@ function Lobby({ room, roomCode, playerName, onStartGameClick }) {
               <button
                 onClick={() => selectMode('Mode2')}
                 style={{
-                  flex: 1,
+                  flex: '1 1 200px',
+                  minWidth: '180px',
                   maxWidth: '250px',
-                  padding: '20px',
+                  padding: '20px 15px',
                   background: selectedMode === 'Mode2' 
                     ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
                     : 'rgba(255,255,255,0.1)',
