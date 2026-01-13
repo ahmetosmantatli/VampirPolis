@@ -726,3 +726,118 @@ body, html, #root {
   color: #fff;
   line-height: 1.8;
 }
+
+/* ==================== LOBİ MOBİL RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .lobby {
+    padding: 15px;
+  }
+
+  .lobby h1 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+  }
+
+  .room-code {
+    padding: 20px 30px;
+    margin-bottom: 25px;
+  }
+
+  .room-code h2 {
+    font-size: 2.5rem;
+    letter-spacing: 8px;
+  }
+
+  .room-code p {
+    font-size: 1.1rem;
+  }
+
+  .share-text {
+    font-size: 0.9rem !important;
+  }
+
+  .blackjack-table {
+    width: 95vw;
+    max-width: 400px;
+    height: 300px;
+    margin: 20px 0;
+  }
+
+  .table-label {
+    font-size: 1.2rem;
+  }
+
+  .player-card {
+    padding: 8px 12px;
+    min-width: 80px;
+  }
+
+  .player-name {
+    font-size: 0.9rem;
+  }
+
+  .crown {
+    font-size: 1.2rem;
+  }
+
+  .start-btn {
+    padding: 18px 40px;
+    font-size: 1.4rem;
+    width: 90%;
+    max-width: 300px;
+  }
+
+  .waiting-text {
+    font-size: 1.3rem;
+  }
+
+  .role-guide-btn {
+    width: 90% !important;
+    max-width: 300px !important;
+    padding: 12px 20px !important;
+    font-size: 1rem !important;
+    margin-bottom: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .lobby {
+    padding: 10px;
+  }
+
+  .lobby h1 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+  }
+
+  .room-code {
+    padding: 15px 20px;
+    margin-bottom: 20px;
+  }
+
+  .room-code h2 {
+    font-size: 2rem;
+    letter-spacing: 5px;
+  }
+
+  .blackjack-table {
+    width: 95vw;
+    max-width: 320px;
+    height: 250px;
+    margin: 15px 0;
+  }
+
+  .player-card {
+    padding: 6px 10px;
+    min-width: 70px;
+  }
+
+  .player-name {
+    font-size: 0.8rem;
+  }
+
+  .start-btn {
+    padding: 15px 30px;
+    font-size: 1.2rem;
+  }
+}
