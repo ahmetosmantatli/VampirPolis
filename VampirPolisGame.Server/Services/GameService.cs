@@ -31,32 +31,67 @@ namespace VampirPolisGame.Server.Services
             
             int index = 0;
             
-            // Vampir ata
-            for (int i = 0; i < vampireCount; i++)
+            // MODE 1: Klasik Vampir
+            if (room.Mode == GameMode.Mode1)
             {
-                players[index].Role = Role.Vampire;
-                room.VampirePlayerIds.Add(players[index].Id);
-                index++;
+                // Vampir ata
+                for (int i = 0; i < vampireCount; i++)
+                {
+                    players[index].Role = Role.Vampire;
+                    room.VampirePlayerIds.Add(players[index].Id);
+                    index++;
+                }
+                
+                // Doktor ata
+                if (hasDoctor)
+                {
+                    players[index].Role = Role.Doctor;
+                    index++;
+                }
+                
+                // Sessiz Tanık ata
+                if (hasSilentWitness)
+                {
+                    players[index].Role = Role.SilentWitness;
+                    index++;
+                }
+                
+                // Geri kalanlar Polis
+                for (int i = index; i < totalPlayers; i++)
+                {
+                    players[i].Role = Role.Police;
+                }
             }
-            
-            // Doktor ata
-            if (hasDoctor)
+            // MODE 2: Usta Vampir + Mekan Mekaniği
+            else if (room.Mode == GameMode.Mode2)
             {
-                players[index].Role = Role.Doctor;
-                index++;
-            }
-            
-            // Sessiz Tanık ata
-            if (hasSilentWitness)
-            {
-                players[index].Role = Role.SilentWitness;
-                index++;
-            }
-            
-            // Geri kalanlar Polis
-            for (int i = index; i < totalPlayers; i++)
-            {
-                players[i].Role = Role.Police;
+                // Usta Vampir ata (Vampir sayısı kadar Usta Vampir)
+                for (int i = 0; i < vampireCount; i++)
+                {
+                    players[index].Role = Role.MasterVampire;
+                    room.VampirePlayerIds.Add(players[index].Id);
+                    index++;
+                }
+                
+                // Doktor ata
+                if (hasDoctor)
+                {
+                    players[index].Role = Role.Doctor;
+                    index++;
+                }
+                
+                // Sessiz Tanık ata
+                if (hasSilentWitness)
+                {
+                    players[index].Role = Role.SilentWitness;
+                    index++;
+                }
+                
+                // Mode 2'de Bilge YOK - Geri kalanlar direkt Polis
+                for (int i = index; i < totalPlayers; i++)
+                {
+                    players[i].Role = Role.Police;
+                }
             }
         }
 
@@ -72,6 +107,19 @@ namespace VampirPolisGame.Server.Services
             // Rolleri karıştır
             var shuffledRoles = selectedRoles.OrderBy(x => random.Next()).ToList();
             
+            // MODE 2: Vampire rolünü MasterVampire'a çevir
+            if (room.Mode == GameMode.Mode2)
+            {
+                for (int i = 0; i < shuffledRoles.Count; i++)
+                {
+                    if (shuffledRoles[i] == "Vampire")
+                    {
+                        shuffledRoles[i] = "MasterVampire";
+                        Console.WriteLine($"🦇 Mode 2: Vampire → MasterVampire'a dönüştürüldü!");
+                    }
+                }
+            }
+            
             // Rolleri ata
             for (int i = 0; i < players.Count; i++)
             {
@@ -79,8 +127,8 @@ namespace VampirPolisGame.Server.Services
                 var role = Enum.Parse<Role>(roleString);
                 players[i].Role = role;
                 
-                // Vampir takımını oluştur
-                if (role == Role.Vampire)
+                // Vampir takımını oluştur (tüm vampir tiplerini dahil et)
+                if (role == Role.Vampire || role == Role.MasterVampire || role == Role.Fledgling)
                 {
                     room.VampirePlayerIds.Add(players[i].Id);
                 }
@@ -190,6 +238,16 @@ namespace VampirPolisGame.Server.Services
             if (eliminatedPlayer != null)
             {
                 eliminatedPlayer.IsAlive = false;
+                
+                // MODE 2: Yeni Yetme Vampir (Fledgling) öldüyse KÖYLÜLER HEMEN KAZANIR
+                if (eliminatedPlayer.Role == Role.Fledgling)
+                {
+                    Console.WriteLine($"🎯 YENİ YETME VAMPİR (FLEDGLING) YAKALANDI! KÖYLÜLER KAZANDI!");
+                    room.Result = GameResult.PoliceWin;
+                }
+                
+                // Fledgling öldüğünde normal oyun devam eder (ısırmaz, kazanma yok)
+                
                 Console.WriteLine($"💀 {eliminatedPlayer.Name} ({eliminatedPlayer.Role}) elendi!");
             }
             
@@ -217,7 +275,11 @@ namespace VampirPolisGame.Server.Services
             // ÖZEL DURUM: 1 Vampir vs 1 Masum → Polis kazanır (Vampir Masumu öldüremez)
             if (totalAlive == 2 && aliveVampires == 1 && aliveNonVampires == 1)
             {
-                var nonVampire = alivePlayers.FirstOrDefault(p => p.Role != Role.Vampire);
+                var nonVampire = alivePlayers.FirstOrDefault(p => 
+                    p.Role != Role.Vampire && 
+                    p.Role != Role.MasterVampire && 
+                    p.Role != Role.Fledgling);
+                    
                 if (nonVampire != null && nonVampire.Role == Role.Innocent)
                 {
                     Console.WriteLine("👤 Police win! (Vampire cannot kill Innocent - stalemate)");

@@ -25,12 +25,16 @@ function GameEndScreen({ result, allRoles, onReturnLobby }) {
                 <div className="role-player-name">{player.Name}</div>
                 <div className="role-icon-big">
                   {player.Role === 'Vampire' ? '🧛' : 
+                   player.Role === 'MasterVampire' ? '🧛‍♂️' : 
+                   player.Role === 'Fledgling' ? '🦇' : 
                    player.Role === 'Police' ? '👮' : 
                    player.Role === 'Doctor' ? '⚕️' : 
                    player.Role === 'Scout' ? '👁️' : '👤'}
                 </div>
                 <div className="role-name">
                   {player.Role === 'Vampire' ? 'Vampir' : 
+                   player.Role === 'MasterVampire' ? 'Usta Vampir' : 
+                   player.Role === 'Fledgling' ? 'Yeni Yetme Vampir' : 
                    player.Role === 'Police' ? 'Polis' : 
                    player.Role === 'Doctor' ? 'Doktor' : 
                    player.Role === 'SilentWitness' ? 'Sessiz Tanık' : 

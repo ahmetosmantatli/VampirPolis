@@ -8,9 +8,12 @@ function DoctorPhase({ room, playerName, myRole, onDoctorSelect, seerKnownRoles 
   const [confirmed, setConfirmed] = useState(false);
   const [showTable, setShowTable] = useState(false);
 
+  // ✅ DÜZELTME: Backend'den protectablePlayers listesi geliyorsa onu kullan
+  const protectablePlayersData = room?.DoctorPhaseData?.protectablePlayers || [];
   const players = room?.Players || room?.players || [];
   
   console.log('🏥 DoctorPhase render - Players:', players);
+  console.log('🏥 DoctorPhase render - ProtectablePlayers:', protectablePlayersData);
   console.log('🏥 DoctorPhase render - Room:', room);
   console.log('🏥 DoctorPhase render - PlayerName:', playerName);
   console.log('🏥 DoctorPhase render - MyRole:', myRole);
@@ -20,21 +23,23 @@ function DoctorPhase({ room, playerName, myRole, onDoctorSelect, seerKnownRoles 
 
   console.log('🏥 isDoctor:', isDoctor);
 
-  // Korunabilir oyuncular (canlı, kendisi değil, son koruduğu değil)
-  const protectablePlayers = players.filter(p => {
-    const name = p.name || p.Name;
-    // Backend bazen undefined gönderebilir, default true olsun
-    const isAliveFlag = p.isAlive ?? p.IsAlive ?? true;
-    const isAlive = isAliveFlag === true;
-    const isNotMe = name !== playerName;
-    const isNotLastProtected = !p.isLastProtected && !p.IsLastProtected;
-    
-    console.log(`🏥 ${name}: isAlive=${p.isAlive}, IsAlive=${p.IsAlive}, filtered=${isAlive}`);
-    
-    return isAlive && isNotMe && isNotLastProtected;
-  });
+  // Eğer backend'den protectablePlayers geldiyse direkt kullan
+  // Yoksa eskisi gibi filtrele (backward compatibility)
+  const protectablePlayers = protectablePlayersData.length > 0 
+    ? protectablePlayersData
+    : players.filter(p => {
+        const name = p.name || p.Name;
+        const isAliveFlag = p.isAlive ?? p.IsAlive ?? true;
+        const isAlive = isAliveFlag === true;
+        const isNotMe = name !== playerName;
+        const isNotLastProtected = !p.isLastProtected && !p.IsLastProtected;
+        
+        console.log(`🏥 ${name}: isAlive=${p.isAlive}, IsAlive=${p.IsAlive}, filtered=${isAlive}`);
+        
+        return isAlive && isNotMe && isNotLastProtected;
+      });
 
-  console.log('🏥 protectablePlayers:', protectablePlayers);
+  console.log('🏥 final protectablePlayers:', protectablePlayers);
 
   // Her turn değiştiğinde state'leri sıfırla
   useEffect(() => {

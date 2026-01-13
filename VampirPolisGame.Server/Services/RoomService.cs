@@ -180,5 +180,15 @@ namespace VampirPolisGame.Server.Services
             
             return null;
         }
+
+        // Oyun bittiğinde odayı sıfırla (slot'u boşalt)
+        public void ResetRoom(string roomCode)
+        {
+            if (_rooms.ContainsKey(roomCode))
+            {
+                _rooms.Remove(roomCode);
+                Console.WriteLine($"🎮 Oyun bitti - Oda silindi: {roomCode}");
+            }
+        }
     }
 }

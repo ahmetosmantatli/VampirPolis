@@ -21,6 +21,36 @@ function RoleGuide({ onClose }) {
       strategy: 'Gündüz masum gibi davran, gece koordineli hareket et'
     },
     {
+      id: 'MasterVampire',
+      name: 'USTA VAMPİR',
+      icon: '🦇',
+      color: '#991b1b',
+      description: 'Avlanır ve öldüğünde birini ısırır',
+      abilities: [
+        '🌙 Her gece avlanabilir (Vampir gibi)',
+        '☠️ Öldüğünde birini Yeni Yetme Vampir yapar',
+        '🧛 Vampir takımının lideridir',
+        '💀 Ölümü bile avantaja çevirir'
+      ],
+      winCondition: 'Vampir sayısı ≥ Diğer oyuncular',
+      strategy: 'Aktif avlan, ölsen bile takımını güçlendir'
+    },
+    {
+      id: 'Fledgling',
+      name: 'YENİ YETME VAMPİR',
+      icon: '🦇',
+      color: '#7f1d1d',
+      description: 'Usta Vampir tarafından ısırılan oyuncu',
+      abilities: [
+        '🧛 Usta Vampir ölünce atanırsın',
+        '🌙 Vampirlerle birlikte avlanabilirsin',
+        '🚫 Kartların mekanlarda gözükmez',
+        '⚠️ Yakalanırsan köylüler kazanır!'
+      ],
+      winCondition: 'Yakalanmadan vampir sayısı ≥ Diğer oyuncular',
+      strategy: 'Son derece dikkatli ol! Yakalanma = Oyun Kaybı'
+    },
+    {
       id: 'Police',
       name: 'POLİS',
       icon: '👮',

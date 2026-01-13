@@ -16,6 +16,8 @@ function GameTable({ room, myRole, playerName, onStartNightPhase, seerKnownRoles
   const getRoleInfo = (role) => {
     const roleMap = {
       'Vampire': { icon: '🧛', name: 'VAMPİR', color: '#dc2626' },
+      'MasterVampire': { icon: '🧛‍♂️', name: 'USTA VAMPİR', color: '#991b1b' },
+      'Fledgling': { icon: '🦇', name: 'YENİ YETME', color: '#b91c1c' },
       'Police': { icon: '👮', name: 'POLİS', color: '#3b82f6' },
       'Doctor': { icon: '⚕️', name: 'DOKTOR', color: '#10b981' },
       'SilentWitness': { icon: '👁️', name: 'SESSİZ TANIK', color: '#8b5cf6' },

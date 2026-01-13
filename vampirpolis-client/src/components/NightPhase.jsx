@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import './NightPhase.css';
 import GameTable from './GameTable';
+import signalR from '../services/signalRService';
 
-function NightPhase({ room, myRole, playerName, vampireTeam, onNightEnd, seerKnownRoles }) {
+function NightPhase({ room, myRole, playerName, vampireTeam, vampireSelections, onNightEnd, seerKnownRoles }) {
   const [showSelection, setShowSelection] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [showTable, setShowTable] = useState(false);
@@ -19,8 +20,16 @@ function NightPhase({ room, myRole, playerName, vampireTeam, onNightEnd, seerKno
     (p.name || p.Name) === playerName
   );
 
-  // Vampir mi kontrolü (Backend İngilizce "Vampire" gönderiyor)
-  const isVampire = myRole === 'Vampir' || myRole === 'Vampire';
+  // ÖNEMLİ: Ölü oyuncular bu ekranı görmemeli!
+  const imAlive = currentPlayer?.isAlive ?? currentPlayer?.IsAlive ?? true;
+  
+  if (!imAlive) {
+    console.log('💀 NightPhase: Ölü oyuncu, ekran gösterilmeyecek');
+    return null; // Ölü oyuncular hiçbir şey görmemeli
+  }
+
+  // Vampir, MasterVampire veya Fledgling mi kontrolü (hepsi avlanabilir)
+  const isVampire = myRole === 'Vampir' || myRole === 'Vampire' || myRole === 'MasterVampire' || myRole === 'Usta Vampir' || myRole === 'Fledgling' || myRole === 'Yeni Yetme Vampir';
   
   // Hedef seçilebilir oyuncular (hayatta olanlar ve vampir olmayanlar)
   const availableTargets = players.filter(player => {
@@ -132,6 +141,64 @@ function NightPhase({ room, myRole, playerName, vampireTeam, onNightEnd, seerKno
                 <p>Hedef seçmelisin</p>
               </div>
 
+              {/* Diğer vampirlerin seçimleri - HER ZAMAN GÖSTER */}
+              <div className="vampire-coordination">
+                <h4>🧛 Vampir Takımı Seçimleri:</h4>
+                {(() => {
+                  console.log('🎨 KOORDINASYON PANEL RENDER');
+                  console.log('🎨 vampireSelections:', vampireSelections);
+                  console.log('🎨 vampireSelections length:', vampireSelections?.length);
+                  console.log('🎨 vampireSelections array:', JSON.stringify(vampireSelections, null, 2));
+                  return null;
+                })()}
+                {vampireSelections && vampireSelections.length > 0 ? (
+                  <>
+                    {/* Sadece diğer vampirlerin seçimlerini göster (isMe: false) */}
+                    {vampireSelections
+                      .filter(selection => {
+                        console.log(`🔍 Filter: ${selection.vampireName} isMe=${selection.isMe}`);
+                        return !selection.isMe;
+                      })
+                      .map((selection, idx) => {
+                        console.log(`✅ RENDER: ${selection.vampireName} → ${selection.targetName}`);
+                        return (
+                          <div 
+                            key={idx} 
+                            className="vampire-selection-item other-selection"
+                          >
+                            <span>
+                              🧛 <strong>{selection.vampireName}</strong> → <strong>{selection.targetName || 'Henüz seçmedi'}</strong> hedef aldı
+                            </span>
+                          </div>
+                        );
+                      })
+                    }
+                    
+                    {/* Diğer vampir seçim göstermiyorsa */}
+                    {vampireSelections.filter(s => !s.isMe).length === 0 && (
+                      <p className="no-selections">Henüz kimse seçim yapmadı...</p>
+                    )}
+                    
+                    {/* Koordinasyon durumu - En az 2 vampir seçim yaptıysa */}
+                    {vampireSelections.filter(s => s.targetName).length > 1 && (
+                      <>
+                        {vampireSelections.every(s => s.targetName === vampireSelections[0].targetName) ? (
+                          <div className="coordination-status success">
+                            ✅ Tüm vampirler aynı hedefi seçti!
+                          </div>
+                        ) : (
+                          <div className="coordination-status warning">
+                            ⚠️ UYARI: Farklı hedefler seçildi! Kimse ölmeyecek!
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <p className="no-selections">Henüz kimse seçim yapmadı...</p>
+                )}
+              </div>
+
               {!showSelection ? (
                 <button 
                   className="selection-btn"
@@ -142,16 +209,34 @@ function NightPhase({ room, myRole, playerName, vampireTeam, onNightEnd, seerKno
               ) : (
                 <div className="target-selection">
                   <h4>Hedef Seç:</h4>
+                  {vampireSelections && vampireSelections.filter(s => !s.isMe && s.targetName).length > 0 && (
+                    <p className="hint-text">💡 Diğer vampirlerin seçtiği hedefe saldır!</p>
+                  )}
                   <div className="targets-list">
                     {availableTargets.map((player) => {
                       const name = player.name || player.Name;
+                      // Diğer vampirlerin bu hedefi seçip seçmediğini kontrol et
+                      const otherVampireSelected = vampireSelections && vampireSelections.find(s => !s.isMe && s.targetName === name);
                       return (
                         <div 
                           key={name}
-                          className={`target-card ${selectedTarget === name ? 'selected' : ''}`}
-                          onClick={() => setSelectedTarget(name)}
+                          className={`target-card ${selectedTarget === name ? 'selected' : ''} ${otherVampireSelected ? 'vampire-recommended' : ''}`}
+                          onClick={async () => {
+                            console.log('🎯 Vampir hedef seçti (ANINDA):', name);
+                            setSelectedTarget(name);
+                            
+                            // ANINDA backend'e gönder (onaylamadan önce)
+                            // Böylece diğer vampirler görebilir
+                            try {
+                              await signalR.invoke('VampireAttack', room.RoomCode, name);
+                              console.log('✅ Vampir seçimi backend\'e gönderildi:', name);
+                            } catch (err) {
+                              console.error('❌ Vampir seçimi gönderilirken hata:', err);
+                            }
+                          }}
                         >
                           <div className="target-name">{name}</div>
+                          {otherVampireSelected && <div className="vampire-badge">🧛 Diğer Vampir</div>}
                           {selectedTarget === name && (
                             <div className="selected-indicator">✓</div>
                           )}

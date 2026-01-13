@@ -4,7 +4,13 @@ using VampirPolisGame.Server.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Services
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+    options.KeepAliveInterval = TimeSpan.FromSeconds(10);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+    options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+});
 builder.Services.AddSingleton<RoomService>();
 builder.Services.AddSingleton<GameService>();
 

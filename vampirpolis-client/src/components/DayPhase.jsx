@@ -19,9 +19,11 @@ function DayPhase({ room, nightData, playerName, onDayEnd, onVoteSubmit, onStart
     return isAlive;
   });
 
-  const killedPlayer = nightData?.killedPlayer || nightData?.killedPlayerName || nightData?.KilledPlayerName || nightData?.KilledPlayer;
-  const message = nightData?.message || nightData?.Message;
-  const wasSaved = nightData?.wasSaved || nightData?.WasSaved || false;
+  // nightData'dan ölü oyuncuları al
+  const killedPlayers = nightData?.killedPlayers || nightData?.KilledPlayers || [];
+
+  console.log('☀️ DayPhase render - killedPlayers:', killedPlayers);
+  console.log('☀️ DayPhase render - killedPlayers.length:', killedPlayers.length);
 
   // Backend'den VotingStarted event'i geldiğinde oylama başlasın
   useEffect(() => {
@@ -71,22 +73,22 @@ function DayPhase({ room, nightData, playerName, onDayEnd, onVoteSubmit, onStart
             </div>
 
             <div className="night-result">
-              {wasSaved ? (
+              {killedPlayers && killedPlayers.length > 0 ? (
                 <>
-                  <p className="result-text">🏥 Bu gece vampir saldırdı ama <strong>Doktor kurtardı!</strong></p>
-                  <p className="saved-text">Kimse ölmedi.</p>
-                </>
-              ) : killedPlayer ? (
-                <>
-                  <p className="result-text">☠️ {message || 'Bu gece vampir saldırdı!'}</p>
-                  <div className="killed-player-box">
-                    <div className="skull-icon">💀</div>
-                    <div className="player-name">{killedPlayer}</div>
-                    <div className="status-text">Oyundan Çıktı</div>
-                  </div>
+                  <p className="result-text">☠️ Bu gece vampirler saldırdı!</p>
+                  {killedPlayers.map((killed, index) => {
+                    const playerName = killed.name || killed.Name;
+                    return (
+                      <div key={index} className="killed-player-box">
+                        <div className="skull-icon">💀</div>
+                        <div className="player-name">{playerName}</div>
+                        <div className="status-text">Oyundan Çıktı</div>
+                      </div>
+                    );
+                  })}
                 </>
               ) : (
-                <p className="result-text">✅ {message || 'Bu gece kimse ölmedi.'}</p>
+                <p className="result-text">✅ Bu gece kimse ölmedi</p>
               )}
             </div>
 

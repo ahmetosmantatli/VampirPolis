@@ -1,0 +1,430 @@
+.card-reveal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(15px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 30px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.card-reveal-header {
+  text-align: center;
+  margin-bottom: 60px;
+  animation: slideDown 0.6s ease-out;
+}
+
+.card-reveal-header h1 {
+  font-size: 3.5em;
+  color: #f59e0b;
+  margin-bottom: 25px;
+  text-shadow: 0 0 30px rgba(245, 158, 11, 1);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px 40px;
+  background: rgba(239, 68, 68, 0.25);
+  border: 4px solid #ef4444;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+
+.countdown-number {
+  font-size: 3em;
+  font-weight: bold;
+  color: #ef4444;
+  min-width: 60px;
+  text-align: center;
+  animation: countdownPulse 1s ease-in-out infinite;
+}
+
+.countdown-label {
+  font-size: 1.5em;
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.reveal-info {
+  font-size: 1.4em;
+  color: #c4b5fd;
+  margin: 20px 0 0 0;
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Masadaki kartlar gibi düzen */
+.cards-row-reveal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  max-width: 1400px;
+}
+
+.card-slot-reveal {
+  animation: cardFlipIn 0.8s ease-out backwards;
+}
+
+.card-slot-reveal:nth-child(1) { animation-delay: 0.2s; }
+.card-slot-reveal:nth-child(2) { animation-delay: 0.4s; }
+.card-slot-reveal:nth-child(3) { animation-delay: 0.6s; }
+
+/* YEŞİL AÇILAN KART - Masadaki kart boyutunda */
+.playing-card-reveal {
+  width: 220px;
+  height: 320px;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.5s ease;
+  cursor: pointer;
+}
+
+/* BEYAZ KART - Başlangıç */
+.white-card {
+  background: linear-gradient(135deg, #e8e8e8, #d0d0d0);
+  border: 5px solid #9ca3af;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.white-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* YEŞİL AÇILAN KART */
+.revealed-green {
+  background: linear-gradient(135deg, #059669, #047857);
+  border: 5px solid #10b981;
+  box-shadow: 
+    0 15px 50px rgba(16, 185, 129, 0.6),
+    0 0 40px rgba(16, 185, 129, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.revealed-green:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 
+    0 25px 60px rgba(16, 185, 129, 0.8),
+    0 0 50px rgba(16, 185, 129, 0.6);
+}
+
+/* IŞILDAMA ANİMASYONU */
+.glowing-card {
+  animation: glowPulse 0.5s ease-in-out;
+  border-color: #fbbf24 !important;
+  box-shadow: 
+    0 0 60px rgba(251, 191, 36, 1),
+    0 0 100px rgba(251, 191, 36, 0.8),
+    inset 0 0 30px rgba(251, 191, 36, 0.5) !important;
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.1);
+    filter: brightness(1.5);
+  }
+}
+
+/* Yeşil glow efekti */
+.card-glow-reveal {
+  position: absolute;
+  inset: -3px;
+  background: linear-gradient(45deg, #10b981, transparent, #34d399, transparent, #10b981);
+  border-radius: 20px;
+  opacity: 0.4;
+  animation: rotateGlow 4s linear infinite;
+  pointer-events: none;
+}
+
+.card-content-reveal {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 25px;
+  text-align: center;
+}
+
+.role-icon-reveal {
+  font-size: 6em;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.9));
+  animation: iconFloat 3s ease-in-out infinite;
+}
+
+.player-name-reveal {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 12px;
+  text-shadow: 0 3px 15px rgba(0, 0, 0, 0.6);
+  word-break: break-word;
+}
+
+.role-name-reveal {
+  font-size: 1.3em;
+  color: #d1fae5;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* BEYAZ KART İÇERİĞİ */
+.card-back-icon {
+  font-size: 6em;
+  margin-bottom: 20px;
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+.player-name-white {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  word-break: break-word;
+}
+
+.my-role-hint {
+  font-size: 0.9em;
+  color: #6b7280;
+  font-style: italic;
+  margin-top: 10px;
+  opacity: 0.7;
+}
+
+/* Benim kartım için özel stil */
+.my-revealed-card {
+  border-color: #fbbf24;
+  box-shadow: 
+    0 15px 50px rgba(251, 191, 36, 0.7),
+    0 0 40px rgba(251, 191, 36, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  animation: myCardPulse 2s ease-in-out infinite;
+}
+
+.my-revealed-card:hover {
+  box-shadow: 
+    0 25px 60px rgba(251, 191, 36, 0.9),
+    0 0 50px rgba(251, 191, 36, 0.7);
+}
+
+.my-card-badge {
+  position: absolute;
+  top: 15px;
+  right: -35px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+  padding: 8px 40px;
+  font-size: 0.85em;
+  font-weight: bold;
+  transform: rotate(45deg);
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.6);
+  letter-spacing: 1px;
+}
+
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .card-reveal-header h1 {
+    font-size: 2.5em;
+  }
+
+  .countdown {
+    padding: 15px 30px;
+  }
+
+  .countdown-number {
+    font-size: 2.5em;
+  }
+
+  .countdown-label {
+    font-size: 1.2em;
+  }
+
+  .reveal-info {
+    font-size: 1.1em;
+  }
+
+  .cards-row-reveal {
+    gap: 25px;
+    flex-direction: column;
+  }
+
+  .playing-card-reveal {
+    width: 200px;
+    height: 290px;
+  }
+
+  .role-icon-reveal {
+    font-size: 5em;
+  }
+
+  .player-name-reveal {
+    font-size: 1.5em;
+  }
+
+  .role-name-reveal {
+    font-size: 1.1em;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-reveal-header h1 {
+    font-size: 2em;
+  }
+
+  .playing-card-reveal {
+    width: 180px;
+    height: 260px;
+  }
+
+  .role-icon-reveal {
+    font-size: 4em;
+  }
+
+  .player-name-reveal {
+    font-size: 1.3em;
+  }
+
+  .role-name-reveal {
+    font-size: 1em;
+  }
+}
+
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardFlipIn {
+  0% {
+    opacity: 0;
+    transform: rotateY(90deg) scale(0.8);
+  }
+  60% {
+    transform: rotateY(-10deg) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes rotateGlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes countdownPulse {
+  0%, 100% { 
+    transform: scale(1); 
+    color: #ef4444;
+  }
+  50% { 
+    transform: scale(1.15); 
+    color: #fca5a5;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    text-shadow: 0 0 30px rgba(245, 158, 11, 1); 
+  }
+  50% { 
+    text-shadow: 0 0 50px rgba(245, 158, 11, 1), 0 0 70px rgba(245, 158, 11, 0.8); 
+  }
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes myCardPulse {
+  0%, 100% {
+    border-color: #fbbf24;
+  }
+  50% {
+    border-color: #f59e0b;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .card-reveal-header h1 {
+    font-size: 2em;
+  }
+
+  .countdown-number {
+    font-size: 2em;
+  }
+
+  .locations-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .location-title h2 {
+    font-size: 1.5em;
+  }
+
+  .role-icon-large {
+    font-size: 4em;
+  }
+
+  .player-name-reveal {
+    font-size: 1.4em;
+  }
+
+  .role-name-reveal {
+    font-size: 1.1em;
+  }
+}

@@ -20,5 +20,9 @@ namespace VampirPolisGame.Server.Models
         // Avcı için özel
         public bool IsHunterRevenge { get; set; } = false;  // Avcı intikam modu
         public string? HunterTarget { get; set; }  // Avcının seçtiği hedef
+        
+        // MasterVampire için özel
+        public bool IsMasterVampireBite { get; set; } = false;  // MasterVampire ısırma modu
+        public string? MasterVampireBiteTarget { get; set; }  // MasterVampire'ın ısırdığı hedef
     }
 }

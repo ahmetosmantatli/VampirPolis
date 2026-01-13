@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import signalR from '../services/signalRService';
 import './VotingResult.css';
 
-function VotingResult({ eliminatedPlayer, isTie, onContinue, roomCode }) {
+function VotingResult({ eliminatedPlayer, isTie, onContinue, roomCode, gameMode, isPlayerDead }) {
   const [countdown, setCountdown] = useState(5);
   const [canContinue, setCanContinue] = useState(false);
 
@@ -12,6 +12,15 @@ function VotingResult({ eliminatedPlayer, isTie, onContinue, roomCode }) {
         if (prev <= 1) {
           setCanContinue(true);
           clearInterval(timer);
+          
+          // Ölü oyuncu için otomatik devam
+          if (isPlayerDead) {
+            console.log('💀 Ölü oyuncu - otomatik devam ediliyor...');
+            setTimeout(() => {
+              handleContinue();
+            }, 500);
+          }
+          
           return 0;
         }
         return prev - 1;
@@ -19,12 +28,21 @@ function VotingResult({ eliminatedPlayer, isTie, onContinue, roomCode }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [isPlayerDead]);
 
   const handleContinue = async () => {
-    console.log('🌙 Gece fazına geçiliyor...');
-    // Backend'e gece fazını başlatmasını söyle
-    await signalR.invoke('ContinueToNight', roomCode);
+    console.log(`🎬 Gece fazına geçiliyor... (Mode: ${gameMode})`);
+    
+    // Mode 2: LocationSelection için ContinueToLocationSelection çağır
+    // Mode 1: Night için ContinueToNight çağır
+    if (gameMode === 'Mode2') {
+      console.log('🏠 Mode 2: PhaseTransition sonrası LocationSelection açılacak');
+      await signalR.invoke('ContinueToLocationSelection', roomCode);
+    } else {
+      console.log('🌙 Mode 1: PhaseTransition sonrası Night başlayacak');
+      await signalR.invoke('ContinueToNight', roomCode);
+    }
+    
     // Frontend state'ini güncelle
     onContinue();
   };
@@ -52,13 +70,15 @@ function VotingResult({ eliminatedPlayer, isTie, onContinue, roomCode }) {
           )}
         </div>
 
-        {canContinue ? (
+        {canContinue && !isPlayerDead ? (
           <button className="continue-btn" onClick={handleContinue}>
             ▶ Devam Et
           </button>
         ) : (
           <div className="countdown-display">
-            <p className="countdown-text">Yeni gece fazı başlıyor...</p>
+            <p className="countdown-text">
+              {isPlayerDead ? '💀 İzleyici modundasın - Otomatik devam ediliyor...' : 'Yeni gece fazı başlıyor...'}
+            </p>
             <div className="countdown-number">{countdown}</div>
           </div>
         )}

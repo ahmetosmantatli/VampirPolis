@@ -32,6 +32,18 @@
   animation: slideDown 0.5s ease;
 }
 
+/* Bildirim paneli - Yeşil/Turuncu */
+.notification-panel {
+  background: linear-gradient(135deg, #1a3a1a 0%, #0d2b0d 100%);
+  border: 3px solid #4ade80;
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 500px;
+  text-align: center;
+  box-shadow: 0 0 50px rgba(74, 222, 128, 0.5);
+  animation: slideDown 0.5s ease;
+}
+
 @keyframes slideDown {
   from {
     transform: translateY(-100px);
@@ -71,6 +83,14 @@
   font-size: 20px;
   margin-bottom: 30px;
   line-height: 1.5;
+}
+
+.notification-message {
+  color: #d1fae5;
+  font-size: 20px;
+  margin-bottom: 30px;
+  line-height: 1.5;
+  font-weight: 500;
 }
 
 .dead-info {

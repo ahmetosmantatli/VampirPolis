@@ -5,10 +5,13 @@ import RoleSelection from './components/RoleSelection';
 import RoleDistribution from './components/RoleDistribution';
 import PhaseTransition from './components/PhaseTransition';
 import GameTable from './components/GameTable';
+import LocationSelection from './components/LocationSelection';
+import CardReveal from './components/CardReveal';
 import NightPhase from './components/NightPhase';
 import DoctorPhase from './components/DoctorPhase';
 import SeerPhase from './components/SeerPhase';
 import HunterPhase from './components/HunterPhase';
+import MasterVampireChoice from './components/MasterVampireChoice';
 import DayPhase from './components/DayPhase';
 import VotingScreen from './components/VotingScreen';
 import VotingResult from './components/VotingResult';
@@ -25,6 +28,7 @@ function App() {
   const [roomCode, setRoomCode] = useState('');
   const [room, setRoom] = useState(null);
   const [myRole, setMyRole] = useState(null);
+  const myRoleRef = useRef(null); // SignalR event handler'lar için ref
   const [vampireTeam, setVampireTeam] = useState([]);
   const [nightData, setNightData] = useState(null);
   const [votingPlayers, setVotingPlayers] = useState([]);
@@ -37,10 +41,19 @@ function App() {
   const [currentPhase, setCurrentPhase] = useState({ phase: 'Night', turn: 1 });
   const [isPlayerDead, setIsPlayerDead] = useState(false);
   const [deathMessage, setDeathMessage] = useState('');
-  const [showDeathOverlay, setShowDeathOverlay] = useState(false); // 3 saniye göster sonra kapat
+  const [showDeathOverlay, setShowDeathOverlay] = useState(false); // Gerçek ölüm için (showTitle=true)
+  const [showNotificationOverlay, setShowNotificationOverlay] = useState(false); // Genel bildirimler için (showTitle=false)
+  const [notificationMessage, setNotificationMessage] = useState(''); // Genel bildirim mesajı
   const [showRoleSelection, setShowRoleSelection] = useState(false); // Rol seçim modal'ı için
+  const [selectedGameMode, setSelectedGameMode] = useState('Mode1'); // Seçilen oyun modu (Lobby'den gelir)
   const [hunterTargets, setHunterTargets] = useState([]); // Avcı intikam hedefleri
+  const [masterVampireChoice, setMasterVampireChoice] = useState(null); // Usta Vampir'in seçeceği oyuncular
+  const [waitingMessage, setWaitingMessage] = useState(''); // Özel aksiyonlar sırasında diğer oyunculara gösterilen bekleme mesajı
   const [seerRevealData, setSeerRevealData] = useState(null); // Kahin'in öğrendiği rol
+  const [revealedCards, setRevealedCards] = useState(null); // Mode 2: Açılan kartlar
+  const [locationSelectionData, setLocationSelectionData] = useState(null); // Mode 2: LocationSelection event data
+  const [isPolling, setIsPolling] = useState(true); // GetRooms polling kontrolü
+  const [vampireSelections, setVampireSelections] = useState([]); // Vampir seçimleri: [{ vampireName: 'a', targetName: 'b' }]
   const [seerKnownRoles, setSeerKnownRoles] = useState(() => {
     // localStorage'dan yükle
     try {
@@ -107,8 +120,27 @@ function App() {
 
     signalR.on('PlayerLeft', (roomData) => {
       console.log('👋 PlayerLeft received:', roomData);
-      console.log('Kalan oyuncu:', roomData?.Players?.length || 0);
-      setRoom(roomData);
+      console.log('📊 Backend gönderdi - Toplam oyuncu:', roomData?.Players?.length || 0);
+      console.log('📊 Players array:', roomData?.Players?.map(p => p.Name || p.name));
+      
+      // ✅ Backend'den gelen güncel player listesini kullan
+      if (roomData?.Players) {
+        setRoom(prevRoom => ({
+          ...prevRoom,
+          ...roomData,
+          Players: roomData.Players // Backend'den gelen güncel liste
+        }));
+        console.log('✅ Room state güncellendi, kalan oyuncu sayısı:', roomData.Players.length);
+      } else {
+        console.error('⚠️ PlayerLeft eventinde Players array yok!');
+        setRoom(roomData);
+      }
+      
+      // GetRooms polling aktifse odalar listesini güncelle
+      if (gameState === 'home') {
+        console.log('📢 Oda listesi güncelleniyor (PlayerLeft)...');
+        fetchRooms();
+      }
     });
 
     signalR.on('RoleAssigned', (roleData) => {
@@ -172,6 +204,18 @@ function App() {
       console.log('🌙 Players:', roomData?.Players);
       console.log('🌙 players:', roomData?.players);
       
+      // ✅ YENİ GECE BAŞLARKEN ESKİ ÖLÜM VERİLERİNİ TEMİZLE
+      setNightData(null);
+      console.log('🗑️ nightData temizlendi - yeni gece başladı');
+      
+      // ✅ ESKİ VAMPİR SEÇİMLERİNİ TEMİZLE
+      setVampireSelections([]);
+      console.log('🗑️ vampireSelections temizlendi - yeni gece başladı');
+      
+      // GetRooms polling'i durdur (gece fazında gereksiz)
+      setIsPolling(false);
+      console.log('🛑 GetRooms polling durduruldu (Night Phase)');
+      
       // Backend camelCase gönderiyor, normalize et
       const normalizedRoom = {
         RoomCode: roomData?.RoomCode || roomData?.roomCode,
@@ -187,8 +231,103 @@ function App() {
       setCurrentPhase({ phase: 'Night', turn: normalizedRoom.Turn });
       console.log('✅ setCurrentPhase called with turn:', normalizedRoom.Turn);
       
-      // PhaseTransition göster
+      // ÖLÜ OYUNCULAR: Players array'den kontrol et (isPlayerDead state gecikebilir!)
+      const currentPlayerName = playerNameRef.current;
+      const myPlayerData = normalizedRoom.Players?.find(p => 
+        (p.Name === currentPlayerName) || (p.name === currentPlayerName)
+      );
+      const imAlive = myPlayerData?.isAlive ?? myPlayerData?.IsAlive ?? true;
+      
+      console.log(`🔍 NightPhaseStarted - Ben (${currentPlayerName}) hayatta mıyım? ${imAlive}`);
+      console.log(`🔍 MyPlayerData:`, myPlayerData);
+      
+      if (!imAlive || isPlayerDead) {
+        console.log('💀 ÖLÜ OYUNCU! Spectator modunda kalıyorum - PhaseTransition ATLANACAK.');
+        setIsPlayerDead(true); // State'i de güncelle
+        setGameState('spectator');
+        // PhaseTransition'ı hiç gösterme!
+        return;
+      }
+      
+      // PhaseTransition göster (sadece canlı oyuncular için)
+      setGameState('night'); // gameState'i 'night' yap
       setShowPhaseTransition(true);
+      console.log('🌙 Night PhaseTransition başladı, 1.5sn sonra kaybolacak');
+    });
+
+    signalR.on('GameModeSelected', (data) => {
+      console.log('🎮 Oyun modu seçildi:', data);
+      // Room state'ini güncelle
+      setRoom(prevRoom => ({
+        ...prevRoom,
+        Mode: data.Mode
+      }));
+    });
+
+    signalR.on('LocationSelectionStarted', (data) => {
+      console.log('📍 Mekan seçimi başladı!', data);
+      
+      // ✅ ÇOKLU EVENT KORUMASI: Aynı turn için tekrar işleme
+      if (currentPhase.phase === 'LocationSelection' && currentPhase.turn === data?.Turn) {
+        console.log('⚠️ LocationSelectionStarted zaten işlendi (Turn:', data?.Turn, '), tekrar işlenmeyecek');
+        return;
+      }
+      
+      // GetRooms polling'i durdur (LocationSelection fazında gereksiz)
+      setIsPolling(false);
+      console.log('🛑 GetRooms polling durduruldu (LocationSelection)');
+      
+      // ÖLÜ OYUNCULAR İÇİN: Sadece daha önce ölmüş oyuncular mekan seçimi görmemeli
+      // isPlayerDead state'i PlayerDied eventi ile true yapılır
+      if (isPlayerDead) {
+        console.log('💀 ÖLÜ OYUNCU! Mekan seçimi ekranı GÖSTERİLMEYECEK. Spectator modda kalıyorum.');
+        // Ölü oyuncular spectator state'te kalır, LocationSelection ekranı görmez
+        setGameState('spectator');
+        return; // Event'i işleme, ekran değişimi yok
+      }
+      
+      // CANLI OYUNCULAR için mekan seçimi
+      setLocationSelectionData(data); // Data'yı kaydet
+      setCurrentPhase({ phase: 'LocationSelection', turn: data?.Turn || currentPhase.turn });
+      console.log('📍 LocationSelection fazına geçildi, currentPhase.phase: LocationSelection');
+      
+      // ✅ gameState değiştir (VotingResult unmount olur, LocationSelection mount olur)
+      setGameState('locationSelection');
+      
+      // ✅ Voting state'lerini temizle (ama votingResult'ı TUTUYORUZ - component unmount oldu zaten)
+      setVotingPlayers([]);
+      console.log('🗑️ Voting aktif state temizlendi - LocationSelection başladı');
+      
+      // Room state'ini güncelle (isLeader bilgisi için kritik!)
+      if (data.Players) {
+        setRoom(prevRoom => ({
+          ...prevRoom,
+          Players: data.Players,
+          Phase: data.Phase,
+          Mode: data.Mode
+        }));
+      }
+    });
+
+    signalR.on('LocationSelected', (data) => {
+      console.log('✅ Mekan seçimi yapıldı:', data);
+      // LocationSelection component'i kendi state'ini güncelleyecek
+    });
+
+    signalR.on('AllLocationsSelected', (data) => {
+      console.log('✅ Tüm mekanlar seçildi!', data);
+      // LocationSelection component'i lider butonunu gösterecek
+    });
+
+    signalR.on('LocationCardsRevealed', (cards) => {
+      console.log('🃏 Kartlar açıldı!', cards);
+      console.log('📦 Cards array length:', cards?.length);
+      console.log('📦 First card:', cards?.[0]);
+      console.log('📦 IsRevealed flags:', cards?.map(c => ({ name: c.PlayerName, revealed: c.IsRevealed })));
+      setRevealedCards(cards);
+      setCurrentPhase({ phase: 'CardReveal', turn: currentPhase.turn });
+      setGameState('cardreveal'); // gameState'i 'cardreveal' yap
+      console.log('✅ State güncellendi: CardReveal phase');
     });
 
     signalR.on('NightEnded', (nightResult) => {
@@ -197,27 +336,39 @@ function App() {
       console.log('🌅 message:', nightResult?.message);
       setNightData(nightResult);
       
-      // Eğer öldürülen oyuncu bensem, ölü durumunu işaretle
       const currentPlayerName = playerNameRef.current;
-      if (nightResult?.killedPlayer === currentPlayerName) {
+      const iAmKilled = nightResult?.killedPlayer === currentPlayerName;
+      const someoneDied = nightResult?.killedPlayer != null;
+      
+      // Eğer öldürülen oyuncu bensem, ölü durumunu işaretle
+      if (iAmKilled) {
         console.log('💀 BEN ÖLDÜM!', currentPlayerName);
         setIsPlayerDead(true);
-        setDeathMessage(nightResult?.message || 'Vampirler seni katletti!');
-        setShowDeathOverlay(true); // Overlay'i göster
-        
-        // 3 saniye sonra overlay'i kapat
-        setTimeout(() => {
-          setShowDeathOverlay(false);
-          console.log('✅ Death overlay kapatıldı, izleyici modu aktif');
-        }, 3000);
       }
       
-      // Gündüz fazına geç
-      setGameState('day');
+      // KIRMIZI/YEŞİL BİLDİRİM KALDIRILDI
+      // Artık DayPhaseStarted → PhaseTransition içinde lider "Oylama Başlat" butonu var
+      console.log('✅ NightEnded - PhaseTransition ve lider butonu gösterilecek');
+      
+      // NOT: GameState değişimi DayPhaseStarted'de yapılacak
+    });
+
+    signalR.on('FledglingAttackConfirmed', (data) => {
+      console.log('🧛 Fledgling saldırı onaylandı:', data);
+      // Gece fazı devam edecek, ProcessNightPhase backend'de çağrılıyor
     });
 
     signalR.on('VotingStarted', (votingData) => {
       console.log('🗳️ Oylama başladı!', votingData);
+      
+      // ✅ PhaseTransition'ı kapat
+      setShowPhaseTransition(false);
+      console.log('✅ PhaseTransition kapatıldı - oylama başlıyor');
+      
+      // ✅ Eski gece verisini temizle
+      setNightData(null);
+      console.log('🗑️ nightData temizlendi - oylama başladı');
+      
       // Room'u güncelle - Phase: Voting
       setRoom(prevRoom => ({
         ...prevRoom,
@@ -231,14 +382,48 @@ function App() {
       // Gece fazı devam ediyor - diğer vampirler seçim yapıyor
     });
 
+    // 🧛 VAMPIR REAL-TIME KOORDİNASYON
+    signalR.on('VampireSelectionsUpdate', (data) => {
+      console.log('🧛 Vampir seçimleri güncellendi (REAL-TIME):', data);
+      console.log('🧛 Seçimler:', data.selections);
+      console.log('🧛 Selection detayları:');
+      data.selections?.forEach((sel, idx) => {
+        console.log(`   ${idx + 1}. ${sel.vampireName} → ${sel.targetName} (isMe: ${sel.isMe}, vampireRole: ${sel.vampireRole})`);
+      });
+      
+      // Data format: { selections: [{ vampireName: 'a', targetName: 'b' }, ...] }
+      if (data.selections && Array.isArray(data.selections)) {
+        setVampireSelections(data.selections);
+        console.log('✅ vampireSelections state güncellendi:', data.selections.length, 'seçim');
+      }
+    });
+
+    // Vampirler farklı hedef seçtiğinde
+    signalR.on('VampireDisagreement', (data) => {
+      console.log('⚠️ Vampir anlaşmazlığı!', data);
+      console.log('⚠️ Mesaj:', data.message);
+      console.log('⚠️ Seçimler:', data.selections);
+      
+      // vampireSelections'ı temizle - yeniden seçim yapılacak
+      setVampireSelections([]);
+      
+      // Kullanıcıya uyarı göster (toast/alert)
+      alert(data.message + '\n\nSeçimler:\n' + data.selections.join('\n'));
+    });
+
     signalR.on('DoctorPhaseStarted', (data) => {
       console.log('🏥 Doktor fazı başladı!', data);
-      // Backend'den gelen oyuncu listesini room'a ekle
+      // ✅ DÜZELTME: Backend artık 2 liste gönderiyor:
+      // - protectablePlayers: Koruma için (doktor hariç)
+      // - allPlayers: GameTable için (doktor dahil)
       setRoom(prevRoom => ({
         ...prevRoom,
-        Players: data.players || prevRoom?.Players,
-        players: data.players || prevRoom?.players,
-        DoctorPhaseData: data
+        Players: data.allPlayers || data.players || prevRoom?.Players, // GameTable için TÜM oyuncular
+        players: data.allPlayers || data.players || prevRoom?.players,
+        DoctorPhaseData: {
+          protectablePlayers: data.protectablePlayers || data.players, // Koruma paneli için
+          lastProtected: data.lastProtected
+        }
       }));
       // Doktor fazına geç
       setGameState('doctor');
@@ -283,36 +468,185 @@ function App() {
 
     signalR.on('HunterRevengePhase', (data) => {
       console.log('🎯 Avcı intikam fazı başladı!', data);
+      console.log('🎯 Hunter name:', data.hunterName);
+      console.log('🎯 Ben:', playerNameRef.current);
+      console.log('🎯 Ben öldüm mü (isPlayerDead):', isPlayerDead);
       
-      // Önce Hunter öldü bildirimini göster
-      setDeathMessage('💀 AVCI ÖLDÜ - İNTİKAMINI ALIYOR!');
-      setShowDeathOverlay(true);
+      const currentPlayerName = playerNameRef.current;
+      const hunterName = data.hunterName || data.HunterName;
       
-      // 3 saniye sonra bildirimi kapat ve Hunter panelini aç
-      setTimeout(() => {
-        setShowDeathOverlay(false);
-        setHunterTargets(data.targets || []);
-        setGameState('hunter');
-      }, 3000);
+      // ✅ BEN AVCI İSEM - Backend sadece ölen Hunter'a event gönderiyor
+      if (currentPlayerName === hunterName) {
+        console.log('🏹 BEN AVCIYIM VE ÖLDÜM! İntikam paneli açılıyor...');
+        
+        // ✅ KRITIK DÜZELTME: State'leri HEMEN set et!
+        // setTimeout içinde beklemek riskli - başka eventler gelip gameState override edebilir
+        setIsPlayerDead(true);
+        setHunterTargets(data.targets || data.Targets || []);
+        setGameState('hunter'); // ✅ Hemen hunter state'ine geç
+        
+        console.log('🎯 Hunter state ayarlandı, hedef sayısı:', (data.targets || data.Targets)?.length);
+        
+        // Death overlay'i 3 saniye göster, sonra kapat
+        setDeathMessage('💀 ÖLDÜN - ama İNTİKAM ALABILIRSIN!');
+        setShowDeathOverlay(true);
+        
+        setTimeout(() => {
+          setShowDeathOverlay(false); // Sadece overlay'i kapat
+          console.log('💀 Death overlay kapatıldı, Hunter panel görünmeli');
+        }, 3000);
+      } else {
+        console.log('⏳ Ben avcı değilim, avcının seçimini bekliyorum...');
+        // Avcı olmayan oyuncular bekleme ekranında kalır
+        setGameState('spectator');
+      }
     });
 
     signalR.on('WaitingForHunter', (data) => {
       console.log('⏳ Avcı bekleniyor:', data);
-      setGameState('hunter');
+      // ✅ DÜZELTME: Hunter olmayan oyuncular spectator'da kalmalı, 'hunter' state'ine geçmemeli
+      // 'hunter' state'i sadece ölen Hunter için açılır (HunterRevengePhase'de)
+      setGameState('spectator');
     });
 
     signalR.on('HunterRevengeComplete', (data) => {
       console.log('💀 Avcı intikamını aldı:', data);
-      // Gündüz fazına geçiş otomatik olacak
+      console.log('💀 Hunter:', data.hunterName);
+      console.log('💀 Target:', data.targetName);
+      console.log('💀 Target Role:', data.targetRole);
+      
+      const currentPlayerName = playerNameRef.current;
+      
+      // ✅ HUNTER İNTİKAMINI ALDI - ARTIK DEAD
+      if (data.hunterName === currentPlayerName || (data.hunterName || data.HunterName) === currentPlayerName) {
+        console.log('🏹 BEN HUNTER\'DIM, intikamımı aldım. Artık dead oluyorum.');
+        setIsPlayerDead(true);
+        setHunterTargets([]);
+        setGameState('spectator');
+      }
+      
+      // Hunter ekranını kapat (diğer oyuncular için)
+      setHunterTargets([]);
+      
+      // Eğer öldürülen oyuncu ben isem, ölü durumunu işaretle
+      if (data.targetName === currentPlayerName) {
+        console.log('💀 AVCI TARAFINDAN ÖLDÜRÜLDÜM!', currentPlayerName);
+        setIsPlayerDead(true);
+        setDeathMessage(`🏹 Avcı seni intikam için öldürdü!`);
+        setShowDeathOverlay(true);
+        
+        setTimeout(() => {
+          setShowDeathOverlay(false);
+          console.log('✅ Death overlay kapatıldı, izleyici modu aktif');
+        }, 3000);
+      }
+      
+      // Eğer backend MasterVampire ısırma işlemi başlatacaksa, o event gelecek
+      console.log('💀 HunterRevengeComplete işlendi, backend\'den sonraki adım bekleniyor...');
+    });
+
+    signalR.on('MasterVampireBiteChoice', (data) => {
+      console.log('🧛 Usta Vampir ısırma fazı:', data);
+      console.log('🧛 alivePlayers:', data.alivePlayers);
+      console.log('🧛 alivePlayers length:', data.alivePlayers?.length);
+      console.log('🧛 masterName from data:', data.masterName || data.MasterName);
+      console.log('🧛 Current playerName:', playerNameRef.current);
+      console.log('🧛 Current myRole (state):', myRole);
+      console.log('🧛 Current myRole (ref):', myRoleRef.current);
+      console.log('🧛 Current gameState:', gameState);
+      
+      // ÖNEMLİ: Sadece ölü Master Vampire bu ekranı görmeli!
+      const currentPlayerName = playerNameRef.current;
+      const masterName = data.masterName || data.MasterName;
+      const currentRole = myRoleRef.current; // Ref kullan - closure sorunu yok
+      
+      // Master Vampire rolüne sahip miyim kontrolü
+      if (currentRole === 'MasterVampire' || masterName === currentPlayerName) {
+        console.log('🧛 BEN MASTER VAMPIRE\'IM! Seçim ekranı açılıyor...');
+        setMasterVampireChoice(data.alivePlayers || data.AlivePlayers || []);
+        setGameState('masterVampire');
+      } else {
+        console.log('⏸️ Bu event benim için değil, beklemede kalıyorum');
+        setWaitingMessage(`💀 ${masterName || 'Usta Vampir'} öldü ve birini vampir yapıyor...`);
+        setGameState('spectator');
+      }
+    });
+
+    signalR.on('WaitingForMasterVampireBite', (data) => {
+      console.log('⏳ Usta Vampir ısırıyor:', data);
+      // Sadece diğer oyunculara bekleme mesajı göster (OYUNDAN ÇIKTIN başlığı olmadan)
+      setWaitingMessage(data.message || `💀 ${data.masterName} öldü ve birini vampir yapıyor...`);
+    });
+
+    signalR.on('MasterVampireBiteComplete', (data) => {
+      console.log('🧛 Usta Vampir ısırdı:', data);
+      
+      // Mesajı 3 saniye overlay olarak göster
+      if (data.message) {
+        setDeathMessage(data.message);
+        setShowDeathOverlay(true);
+        setTimeout(() => {
+          setShowDeathOverlay(false);
+          setDeathMessage('');
+        }, 3000);
+      }
+      
+      setWaitingMessage(''); // Bekleme mesajını temizle
+      setMasterVampireChoice([]); // Usta Vampir seçim ekranını kapat
+      
+      // DÜZELTME: Ölen Master Vampire için spectator state'e geç
+      setGameState('spectator'); // Ölü oyuncu artık sadece izleyici
+    });
+
+    signalR.on('RoleChanged', (data) => {
+      console.log('🔄 Rol değişti:', data);
+      
+      // Mesajı overlay olarak göster
+      const roleMessage = `🧛 USTA VAMPİR SENİ ISIRDI!\n\nYeni Rolün: ${data.newRole}\n\n${data.message}\n\nVampir Takımı: ${data.vampireTeam?.join(', ') || 'Bilinmiyor'}`;
+      setDeathMessage(roleMessage);
+      setShowDeathOverlay(true);
+      setTimeout(() => {
+        setShowDeathOverlay(false);
+        setDeathMessage('');
+      }, 5000); // 5 saniye göster (önemli bilgi)
+      
+      setMyRole(data.newRole);
+      setVampireTeam(data.vampireTeam || []);
+      
+      // Eğer güncel room data varsa, state'i güncelle
+      if (data.roomData) {
+        console.log('🔄 Güncel room data alındı:', data.roomData);
+        setRoom(data.roomData);
+      }
+    });
+
+    signalR.on('YouAreFledgling', (data) => {
+      console.log('🦇 YENİ YETME VAMPİR OLDUN!', data);
+      alert(`🧛 USTA VAMPİR SENİ ISIRDI!\n\nEski Rolün: ${data.OldRole}\nYeni Rolün: YENİ YETME VAMPİR (Fledgling)\n\n⚠️ DİKKAT: Yakalanırsan köylüler kazanır!\nKartların mekanlarda gözükmez.\n\nVampir Takımı: ${data.VampireTeam?.join(', ') || 'Bilinmiyor'}`);
+      setMyRole('Fledgling');
+      // ✅ YENİ: VampireTeam'i güncelle - Yeni yetme vampir artık vampir takımında
+      const newVampireTeam = data.VampireTeam || data.vampireTeam || [];
+      console.log('🦇 Vampir takımı güncellendi:', newVampireTeam);
+      setVampireTeam(newVampireTeam);
+    });
+
+    signalR.on('FledglingCreated', (data) => {
+      console.log('🧛 Yeni yetme vampir yaratıldı:', data);
+      console.log('🧛 Yeni vampir takımı:', data.VampireTeam || data.vampireTeam);
+      
+      // ✅ YENİ: Diğer vampirler için vampireTeam güncelle
+      const newVampireTeam = data.VampireTeam || data.vampireTeam || [];
+      if (newVampireTeam.length > 0) {
+        console.log('🦇 Vampir takımı güncellendi (FledglingCreated):', newVampireTeam);
+        setVampireTeam(newVampireTeam);
+      }
+      
+      setShowDeathOverlay(false);
+      setDeathMessage('');
     });
 
     signalR.on('VoteConfirmed', () => {
       console.log('✅ Oy kaydedildi');
-    });
-
-    signalR.on('VotingResult', (result) => {
-      console.log('📊 Oylama sonucu:', result);
-      // Sonucu göster - ileride ekleyeceğiz
     });
 
     signalR.on('GameEnded', (endData) => {
@@ -345,42 +679,103 @@ function App() {
     });
 
     signalR.on('DayPhaseStarted', (data) => {
-      console.log('☀️ Gündüz fazı başladı!', data);
-      setNightData(data);
-      setCurrentPhase({ phase: 'Day', turn: data.Turn || 1 });
-      setShowPhaseTransition(true);
+      console.log('☀️☀️☀️ GÜNDÜZ FAZI BAŞLADI! ☀️☀️☀️', data);
+      
+      // SignalR camelCase yapar: AlivePlayers -> alivePlayers
+      const alivePlayers = data.alivePlayers || data.AlivePlayers;
+      const leaderId = data.leaderId || data.LeaderId;
+      const leaderName = data.leaderName || data.LeaderName;
+      const killedPlayers = data.killedPlayers || data.KilledPlayers || [];
+      
+      console.log('☀️ AlivePlayers:', alivePlayers);
+      console.log('☀️ Leader:', leaderName, leaderId);
+      console.log('☀️ KilledPlayers:', killedPlayers);
+      
+      // ✅ nightData'yı PhaseTransition için hazırla
+      const nightResult = {
+        killedPlayers: killedPlayers || [],
+        KilledPlayers: killedPlayers || []
+      };
+      
+      console.log('☀️ nightResult oluşturuldu:', nightResult);
+      setNightData(nightResult);
+      setCurrentPhase({ phase: 'Day', turn: data.Turn || data.turn || 1 });
+      
+      // KIRMIZI/YEŞİL BİLDİRİM KALDIRILDI - Artık PhaseTransition içinde lider butonu var
+      
+      // ÖNEMLI: Ölü oyuncular için gameState'i 'spectator' yap
+      const currentPlayerName = playerNameRef.current;
+      
+      // Eğer AlivePlayers yoksa veya listede değilsem, ÖLÜYÜM
+      const imAlive = alivePlayers && alivePlayers.length > 0 
+        ? alivePlayers.some(p => 
+            (p.Id === currentPlayerName) || (p.id === currentPlayerName) ||
+            (p.Name === currentPlayerName) || (p.name === currentPlayerName)
+          )
+        : false; // Default FALSE - eğer liste yoksa ölüyüm demektir
+      
+      console.log(`☀️ Gündüz fazı: Ben (${currentPlayerName}) hayatta mıyım? ${imAlive}`);
+      console.log(`☀️ AlivePlayers count: ${alivePlayers?.length || 0}`);
+      
+      // Lider kontrolü - Backend'den gelen leader bilgisini kullan
+      const isLeader = (leaderId === currentPlayerName) || (leaderName === currentPlayerName);
+      
+      console.log(`👑 Lider kontrolü: Ben ${currentPlayerName}, LeaderId: ${leaderId}, LeaderName: ${leaderName}, isLeader: ${isLeader}`);
+      
+      // ÖLÜ OYUNCULAR:
+      if (!imAlive) {
+        console.log('💀 ÖLÜ OYUNCU!');
+        setIsPlayerDead(true);
+        
+        // ✅ YENİ: Ölü lider ise PhaseTransition göster (oylama başlatabilsin)
+        if (isLeader) {
+          console.log('👑💀 ÖLÜ LİDER! PhaseTransition gösterilecek ama sonra spectator olacak');
+          setGameState('day'); // PhaseTransition için day state'ine geç
+          setShowPhaseTransition(true); // Ölü lider PhaseTransition ve "Oylama Başlat" butonu görecek
+          return;
+        }
+        
+        // Ölü non-leader oyuncular spectator
+        console.log('💀 ÖLÜ OYUNCU! Spectator state\'e geçiyor, PhaseTransition YOK');
+        setGameState('spectator');
+        setShowPhaseTransition(false); // Ölü non-leader oyuncular PhaseTransition görmemeli
+        return; // Erken return - PhaseTransition gösterme
+      }
+      
+      // CANLI OYUNCULAR: gameState'i 'day' yap, PhaseTransition göster
+      setGameState('day');
+      
+      if (imAlive) {
+        console.log('✅ CANLI OYUNCU! PhaseTransition gösterilecek');
+        setShowPhaseTransition(true); // Sadece canlı oyuncular PhaseTransition görecek
+        // PhaseTransition kapandıktan sonra (lider butonu ile) day/voting state'e geçecek
+      }
     });
 
     signalR.on('VotingStarted', (alivePlayers) => {
       console.log('🗳️ Oylama başladı! Hayatta:', alivePlayers?.length || 0);
-      const currentPlayerName = playerNameRef.current; // Ref'ten oku
-      console.log('🗳️ CURRENT playerName (from ref):', currentPlayerName);
-      console.log('🗳️ alivePlayers array:', alivePlayers);
       
-      // Ölü oyuncuları filtrele
-      const reallyAlive = (alivePlayers || []).filter(p => {
-        const isAlive = (p.IsAlive !== false) && (p.isAlive !== false);
-        console.log(`  Oyuncu ${p.Name || p.name}: isAlive=${p.isAlive}, IsAlive=${p.IsAlive}, filtered=${isAlive}`);
-        return isAlive;
-      });
-      console.log('✅ Gerçekten hayatta:', reallyAlive.length);
-      setVotingPlayers(reallyAlive);
+      // ✅ ESKİ VERILERI TEMİZLE
+      setVotingResult(null);
+      console.log('🗑️ VotingResult temizlendi - yeni oylama başlıyor');
       
-      // Mevcut oyuncunun hayatta olan listesinde olup olmadığını kontrol et
-      const amIAlive = reallyAlive.some(p => 
-        (p.Name === currentPlayerName) || (p.name === currentPlayerName) || 
-        (p.Id === currentPlayerName) || (p.id === currentPlayerName)
-      );
+      setVotingPlayers(alivePlayers || []);
       
-      console.log(`🔍 Ben (${currentPlayerName}) hayatta mıyım? ${amIAlive}`);
-      console.log(`🔍 Hayatta olan oyuncular:`, reallyAlive.map(p => p.Name || p.name));
+      // Room Phase'ini güncelle (Phase: Voting)
+      setRoom(prevRoom => ({
+        ...prevRoom,
+        Phase: 'Voting',
+        phase: 'Voting'
+      }));
       
-      if (amIAlive) {
-        setGameState('voting');
-      } else {
-        console.log('💀 ÖLÜ OYUNCU! Oylama ekranı gösterilmeyecek. İzleyici modu aktif.');
-        // Elenen oyuncular için spectator state'e geç
+      // ÖLÜ OYUNCULAR: isPlayerDead state'i PlayerDied eventi ile true yapılır
+      if (isPlayerDead) {
+        console.log('💀 ÖLÜ OYUNCU! Oylama ekranı gösterilmeyecek. Spectator modunda kalacağım.');
+        // Ölü oyuncular spectator state'te kalır - BEYAZ EKRAN DEĞİL!
         setGameState('spectator');
+      } else {
+        // CANLI OYUNCULAR için oylama ekranı
+        setGameState('voting');
       }
     });
 
@@ -395,35 +790,77 @@ function App() {
       console.log('🗳️ eliminatedPlayerRole (camelCase):', data.eliminatedPlayerRole);
       console.log('🗳️ IsTie (PascalCase):', data.IsTie);
       console.log('🗳️ isTie (camelCase):', data.isTie);
+      console.log('🎮 GameMode (PascalCase):', data.GameMode);
+      console.log('🎮 gameMode (camelCase):', data.gameMode);
+      console.log('📊 VoteDistribution (PascalCase):', data.VoteDistribution);
+      console.log('📊 voteDistribution (camelCase):', data.voteDistribution);
+      
+      // Vote distribution'ı göster
+      const voteDistribution = data.voteDistribution || data.VoteDistribution;
+      if (voteDistribution && voteDistribution.length > 0) {
+        console.log('📊 OY DAĞILIMI:');
+        voteDistribution.forEach(vote => {
+          const playerName = vote.playerName || vote.PlayerName;
+          const votes = vote.votes || vote.Votes;
+          console.log(`  ${playerName}: ${votes} oy`);
+        });
+      }
       
       // camelCase versiyonlarını kullan
       const eliminatedPlayerName = data.eliminatedPlayerName || data.EliminatedPlayerName;
       const eliminatedPlayerRole = data.eliminatedPlayerRole || data.EliminatedPlayerRole;
       const isTie = data.isTie !== undefined ? data.isTie : data.IsTie;
       const nextTurn = data.nextTurn || data.NextTurn;
+      const gameMode = data.gameMode || data.GameMode;
       
       console.log('📊 Normalized values:');
       console.log('  - eliminatedPlayerName:', eliminatedPlayerName);
       console.log('  - eliminatedPlayerRole:', eliminatedPlayerRole);
       console.log('  - isTie:', isTie);
       console.log('  - nextTurn:', nextTurn);
+      console.log('  - gameMode:', gameMode);
       
       // Eğer elenen oyuncu ben isem, ölü olarak işaretle
       const currentPlayerName = playerNameRef.current;
       if (eliminatedPlayerName === currentPlayerName) {
-        console.log('💀 BEN ELENDİM! Artık izleyici modundayım.');
-        setIsPlayerDead(true);
-        setDeathMessage(`Köylüler tarafından elendin! (${eliminatedPlayerName})`);
-        setShowDeathOverlay(true); // Overlay'i göster
+        console.log('💀 BEN ELENDİM! Rol:', eliminatedPlayerRole);
         
-        // 3 saniye sonra overlay'i kapat
-        setTimeout(() => {
-          setShowDeathOverlay(false);
-          console.log('✅ Death overlay kapatıldı, izleyici modu aktif');
-        }, 3000);
+        // ⚠️ EĞER HUNTER İSE HEMEN DEAD YAPMA! Hunter intikam alacak
+        if (eliminatedPlayerRole === 'Hunter') {
+          console.log('🏹 BEN HUNTER\'IM! İntikam için bekliyorum, henüz dead değilim');
+          // Hunter için death overlay göster ama isPlayerDead=true yapma
+          setDeathMessage(`Oyundan çıkarıldın - ama intikam alabilirsin!`);
+          setShowDeathOverlay(true);
+          
+          setTimeout(() => {
+            setShowDeathOverlay(false);
+          }, 3000);
+        } else if (eliminatedPlayerRole === 'MasterVampire') {
+          console.log('🧛 BEN MASTER VAMPIRE\'IM! Birini ısıracağım, henüz dead değilim');
+          // MasterVampire için death overlay göster ama isPlayerDead=true yapma
+          setDeathMessage(`Oyundan çıkarıldın - ama birini vampir yapabilirsin!`);
+          setShowDeathOverlay(true);
+          
+          setTimeout(() => {
+            setShowDeathOverlay(false);
+          }, 3000);
+        } else {
+          // Hunter veya MasterVampire değilse direkt dead yap
+          setIsPlayerDead(true);
+          setGameState('spectator');
+          setDeathMessage(`Köylüler tarafından elendin! Rol: ${eliminatedPlayerRole}`);
+          setShowDeathOverlay(true);
+          
+          setTimeout(() => {
+            setShowDeathOverlay(false);
+            console.log('✅ Death overlay kapatıldı, izleyici modu aktif');
+          }, 3000);
+        }
       }
       
       // Room turn'ü güncelle
+      let finalEliminatedPlayer = null;
+      
       setRoom(prevRoom => {
         const updatedRoom = {
           ...prevRoom,
@@ -440,15 +877,25 @@ function App() {
         
         console.log('🗳️ Elenen oyuncu bulundu:', eliminatedPlayer);
         
-        setVotingResult({
-          eliminatedPlayer: eliminatedPlayer,
-          isTie: isTie,
-          nextTurn: nextTurn
-        });
+        // ✅ Eliminated player'ı dışarıda kullanmak için kaydet
+        finalEliminatedPlayer = eliminatedPlayer;
         
         return updatedRoom;
       });
       
+      // ✅ VotingResult'ı setRoom DIŞINDA ayarla (setTimeout KULLANMA!)
+      const resultData = {
+        eliminatedPlayer: finalEliminatedPlayer,
+        isTie: isTie,
+        nextTurn: nextTurn,
+        gameMode: gameMode
+      };
+      
+      console.log('🗳️ VotingResult state ayarlanıyor:', resultData);
+      setVotingResult(resultData);
+      
+      // ⚠️ LocationSelectionStarted gelene kadar votingResult göster
+      // LocationSelectionStarted handler'ı gameState'i değiştirecek
       setGameState('votingResult');
     });
 
@@ -472,6 +919,8 @@ function App() {
 
     signalR.on('Error', (message) => {
       console.error('❌ Backend hatası:', message);
+      alert(`❌ HATA: ${message}`);
+      // Rol seçim modalı açıksa, isSubmitting'i false yap (RoleSelection kendi handle edecek)
     });
 
     // Oda listesi güncellemesi
@@ -482,15 +931,12 @@ function App() {
 
     // Event listener'lar kaydedildi, ŞİMDİ bağlan
     console.log('🔄 SignalR bağlanıyor...');
-    let intervalId;
     
     signalR.connect()
       .then(() => {
         console.log('✅ SignalR bağlandı, odalar yükleniyor...');
         // Bağlantı başarılı olunca odaları yükle
         loadRooms();
-        // Her 500ms'de bir güncelle (hızlı polling)
-        intervalId = setInterval(loadRooms, 500);
       })
       .catch((err) => {
         console.error('❌ SignalR bağlantı başarısız:', err);
@@ -498,14 +944,39 @@ function App() {
 
     // Component unmount olduğunda cleanup
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-        console.log('🧹 Polling interval temizlendi');
-      }
+      console.log('🧹 useEffect cleanup - event listener\'lar temizleniyor');
       // SignalR bağlantısını AÇIK BIRAK - lobby'de de gerekli!
       // signalR.disconnect();
     };
   }, []);
+
+  // Sadece HOME ekranındayken VE isPolling=true ise oda listesini güncelle (polling)
+  useEffect(() => {
+    if (gameState !== 'home' || !isPolling) {
+      return; // Oyun içindeyken veya polling kapalıyken GetRooms çağırma
+    }
+
+    // İlk yükleme
+    loadRooms();
+
+    // Her 2 saniyede bir güncelle (sadece home'dayken VE isPolling=true ise)
+    const intervalId = setInterval(() => {
+      if (gameState === 'home' && isPolling) {
+        loadRooms();
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(intervalId);
+      console.log('🧹 Home polling interval temizlendi');
+    };
+  }, [gameState, isPolling]); // gameState veya isPolling değiştiğinde yeniden kur
+
+  // myRole değiştiğinde ref'i güncelle
+  useEffect(() => {
+    myRoleRef.current = myRole;
+    console.log('🎭 myRoleRef güncellendi:', myRole);
+  }, [myRole]);
 
   // Oda oluştur
   const createRoom = async () => {
@@ -549,10 +1020,18 @@ function App() {
   const handleNightEnd = async (targetName) => {
     try {
       console.log('🎯 Vampir hedef seçti:', targetName);
-      await signalR.invoke('VampireAttack', roomCode, targetName);
-      console.log('✅ VampireAttack çağrıldı');
+      
+      // Fledgling ise FledglingAttack, diğer vampirler için VampireAttack
+      if (myRole === 'Fledgling' || myRole === 'Yeni Yetme Vampir') {
+        console.log('🧛 Fledgling saldırısı başlatılıyor...');
+        await signalR.invoke('FledglingAttack', roomCode, targetName);
+        console.log('✅ FledglingAttack çağrıldı');
+      } else {
+        await signalR.invoke('VampireAttack', roomCode, targetName);
+        console.log('✅ VampireAttack çağrıldı');
+      }
     } catch (err) {
-      console.error('❌ VampireAttack hatası:', err);
+      console.error('❌ Vampir saldırı hatası:', err);
     }
   };
 
@@ -582,7 +1061,7 @@ function App() {
   const handleStartVoting = async () => {
     try {
       console.log('🗳️ Lider oylama başlatıyor...');
-      await signalR.invoke('StartVoting', roomCode);
+      await signalR.invoke('StartVoting', roomCode, false);
       console.log('✅ StartVoting çağrıldı');
     } catch (err) {
       console.error('❌ StartVoting hatası:', err);
@@ -618,11 +1097,13 @@ function App() {
     
     // Reset all game states
     setGameState('home');
+    setIsPolling(true); // Home'a döndüğünde polling'i yeniden başlat
     setPlayerName('');
     playerNameRef.current = '';
     setRoomCode('');
     setRoom(null);
     setMyRole(null);
+    myRoleRef.current = null; // Ref'i de sıfırla
     setVampireTeam([]);
     setNightData(null);
     setVotingPlayers([]);
@@ -717,12 +1198,17 @@ function App() {
             room={room} 
             roomCode={roomCode}
             playerName={playerName}
-            onStartGameClick={() => setShowRoleSelection(true)}
+            onStartGameClick={(mode) => {
+              console.log('🎮 Rol seçimi açılıyor, mod:', mode);
+              setSelectedGameMode(mode);
+              setShowRoleSelection(true);
+            }}
           />
           {showRoleSelection && (
             <RoleSelection
               roomCode={roomCode}
               playerCount={room?.Players?.length || 0}
+              selectedMode={selectedGameMode}
               onClose={() => setShowRoleSelection(false)}
             />
           )}
@@ -735,6 +1221,10 @@ function App() {
             room={room} 
             roomCode={roomCode}
             playerName={playerName}
+            onStartGameClick={(mode) => {
+              // Distribution sırasında bu çağrılmaz ama prop gerekli
+              console.log('⚠️ Distribution sırasında StartGame çağrıldı');
+            }}
           />
           <RoleDistribution
             roleInfo={roleInfo}
@@ -772,10 +1262,50 @@ function App() {
         <PhaseTransition
           phase={currentPhase.phase}
           turn={room?.Turn || currentPhase.turn || 1}
+          isLeader={room?.Players?.find(p => (p.Name || p.name) === playerName)?.IsLeader || room?.Players?.find(p => (p.Name || p.name) === playerName)?.isLeader || false}
+          nightResult={nightData}
+          onStartVoting={async () => {
+            console.log('🗳️ Lider oylama başlatıyor (PhaseTransition butonu)...');
+            await signalR.invoke('StartVoting', roomCode, false);
+            console.log('✅ StartVoting çağrıldı');
+          }}
           onComplete={() => {
+            console.log('✅ PhaseTransition kayboldu, onComplete çağrılıyor');
             setShowPhaseTransition(false);
-            // Gece fazına geç
-            setGameState('night');
+            
+            // ✅ YENİ: Ölü lider oylama başlattıysa spectator'a geç
+            if (isPlayerDead) {
+              console.log('💀👑 ÖLÜ LİDER - Oylama başlattı, spectator state\'e geçiyor');
+              setGameState('spectator');
+              return;
+            }
+            
+            // PhaseTransition'dan sonra hangi state'e geçeceğimize phase'e bakarak karar ver
+            setGameState(prevState => {
+              // Ölü oyuncular zaten spectator state'te, değiştirme!
+              if (prevState === 'spectator') {
+                console.log('✅ Ölü oyuncu - spectator state korunuyor');
+                return 'spectator';
+              }
+              
+              // Phase'e göre doğru state'e geç
+              if (currentPhase.phase === 'Day') {
+                // Gündüz fazında lider butona bastı, oylama başladı
+                console.log('✅ Day phase tamamlandı - Oylama başladı');
+                return 'voting'; // VotingStarted eventi gelince zaten voting'e geçecek
+              } else if (currentPhase.phase === 'Night') {
+                console.log('✅ Canlı oyuncu - night state\'e geçiliyor');
+                return 'night';
+              } else if (currentPhase.phase === 'Voting') {
+                console.log('✅ Voting phase başlıyor');
+                return 'voting';
+              }
+              
+              // Diğer durumlar için gece fazına geç (varsayılan)
+              console.log('✅ Varsayılan - night state\'e geçiliyor');
+              return 'night';
+            });
+            console.log('✅ PhaseTransition onComplete tamamlandı');
           }}
         />
       )}
@@ -790,7 +1320,33 @@ function App() {
         />
       )}
 
-      {gameState === 'night' && (
+      {/* Mode 2: Mekan Seçim Ekranı */}
+      {currentPhase.phase === 'LocationSelection' && locationSelectionData && (
+        <LocationSelection 
+          roomCode={roomCode}
+          playerName={playerName}
+          isLeader={room?.Players?.find(p => (p.Name || p.name) === playerName)?.IsLeader || room?.Players?.find(p => (p.Name || p.name) === playerName)?.isLeader || false}
+          isPlayerDead={isPlayerDead}
+        />
+      )}
+
+      {/* Mode 2: Kart Gösterim Ekranı */}
+      {currentPhase.phase === 'CardReveal' && revealedCards && (
+        <CardReveal 
+          revealedCards={revealedCards}
+          playerName={playerName}
+          myRole={myRole}
+          onComplete={() => {
+            console.log('✅ Kart gösterimi tamamlandı, gece fazına geçiliyor');
+            setRevealedCards(null);
+            setCurrentPhase({ phase: 'Night', turn: currentPhase.turn });
+            // gameState'i DEĞİŞTİRME - NightPhaseStarted eventi zaten 'night' yapacak
+            console.log('✅ CardReveal tamamlandı, NightPhaseStarted eventini bekliyoruz...');
+          }}
+        />
+      )}
+
+      {gameState === 'night' && !isPlayerDead && (
         <>
           <GameTable 
             room={room}
@@ -804,8 +1360,29 @@ function App() {
             myRole={myRole}
             playerName={playerName}
             vampireTeam={vampireTeam}
+            vampireSelections={vampireSelections}
             onNightEnd={handleNightEnd}
             seerKnownRoles={seerKnownRoles}
+          />
+        </>
+      )}
+
+      {gameState === 'day' && !isPlayerDead && (
+        <>
+          <GameTable 
+            room={room}
+            myRole={myRole}
+            playerName={playerName}
+            onStartNightPhase={handleStartNightPhase}
+            seerKnownRoles={seerKnownRoles}
+          />
+          <DayPhase 
+            room={room}
+            myRole={myRole}
+            playerName={playerName}
+            seerKnownRoles={seerKnownRoles}
+            onStartVoting={handleStartVoting}
+            nightData={nightData}
           />
         </>
       )}
@@ -819,36 +1396,13 @@ function App() {
             onStartNightPhase={handleStartNightPhase}
             seerKnownRoles={seerKnownRoles}
           />
-          <DoctorPhase 
-            room={room}
-            playerName={playerName}
-            myRole={myRole}
-            onDoctorSelect={handleDoctorSelect}
-            seerKnownRoles={seerKnownRoles}
-          />
-        </>
-      )}
-
-      {gameState === 'seer' && (
-        <>
-          <GameTable 
-            room={room}
-            myRole={myRole}
-            playerName={playerName}
-            onStartNightPhase={handleStartNightPhase}
-            seerKnownRoles={seerKnownRoles}
-          />
-          {myRole === 'Seer' ? (
-            <SeerPhase 
+          {!isPlayerDead ? (
+            <DoctorPhase 
               room={room}
               playerName={playerName}
-              seerRevealData={seerRevealData}
               myRole={myRole}
+              onDoctorSelect={handleDoctorSelect}
               seerKnownRoles={seerKnownRoles}
-              onComplete={() => {
-                console.log('🔮 Kahin fazı tamamlandı');
-                setSeerRevealData(null); // Temizle
-              }}
             />
           ) : (
             <div style={{
@@ -864,9 +1418,74 @@ function App() {
               fontWeight: 'bold',
               textAlign: 'center',
               zIndex: 100,
-              border: '2px solid #f59e0b'
+              border: '2px solid #ff6b6b'
             }}>
-              <div>🔮 Kahin vizyon görüyor...</div>
+              <div>💀 İzleyici modundasın</div>
+              <div style={{ fontSize: '14px', marginTop: '5px', opacity: 0.8 }}>🏥 Doktor koruma seçiyor...</div>
+            </div>
+          )}
+        </>
+      )}
+
+      {gameState === 'seer' && (
+        <>
+          <GameTable 
+            room={room}
+            myRole={myRole}
+            playerName={playerName}
+            onStartNightPhase={handleStartNightPhase}
+            seerKnownRoles={seerKnownRoles}
+          />
+          {!isPlayerDead ? (
+            myRole === 'Seer' ? (
+              <SeerPhase 
+                room={room}
+                playerName={playerName}
+                seerRevealData={seerRevealData}
+                myRole={myRole}
+                seerKnownRoles={seerKnownRoles}
+                onComplete={() => {
+                  console.log('🔮 Kahin fazı tamamlandı');
+                  setSeerRevealData(null); // Temizle
+                }}
+              />
+            ) : (
+              <div style={{
+                position: 'fixed',
+                bottom: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0, 0, 0, 0.8)',
+                color: 'white',
+                padding: '15px 30px',
+                borderRadius: '10px',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                zIndex: 100,
+                border: '2px solid #f59e0b'
+              }}>
+                <div>🔮 Kahin vizyon görüyor...</div>
+              </div>
+            )
+          ) : (
+            <div style={{
+              position: 'fixed',
+              bottom: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(0, 0, 0, 0.8)',
+              color: 'white',
+              padding: '15px 30px',
+              borderRadius: '10px',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              zIndex: 100,
+              border: '2px solid #ff6b6b'
+            }}>
+              <div>💀 İzleyici modundasın</div>
+              <div style={{ fontSize: '14px', marginTop: '5px', opacity: 0.8 }}>🔮 Kahin vizyon görüyor...</div>
             </div>
           )}
         </>
@@ -881,6 +1500,7 @@ function App() {
             onStartNightPhase={handleStartNightPhase}
             seerKnownRoles={seerKnownRoles}
           />
+          {/* ✅ DÜZELTME: Hunter öldü ama intikam alacak - isPlayerDead kontrolünü kaldır! */}
           {myRole === 'Hunter' ? (
             <HunterPhase 
               connection={signalR.connection}
@@ -904,6 +1524,64 @@ function App() {
               border: '2px solid #ff4500'
             }}>
               <div>🎯 Avcı intikamını alıyor...</div>
+            </div>
+          )}
+        </>
+      )}
+
+      {gameState === 'masterVampire' && (
+        <>
+          <GameTable 
+            room={room}
+            myRole={myRole}
+            playerName={playerName}
+            onStartNightPhase={handleStartNightPhase}
+            seerKnownRoles={seerKnownRoles}
+          />
+          {!isPlayerDead ? (
+            myRole === 'MasterVampire' ? (
+              <MasterVampireChoice
+                connection={signalR.connection}
+                roomCode={roomCode}
+                alivePlayers={masterVampireChoice}
+              />
+            ) : (
+              <div style={{
+                position: 'fixed',
+                bottom: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0, 0, 0, 0.8)',
+                color: 'white',
+                padding: '15px 30px',
+                borderRadius: '10px',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                zIndex: 100,
+                border: '2px solid #8b0000'
+              }}>
+                <div>🧛 Usta Vampir birini ısırıyor...</div>
+              </div>
+            )
+          ) : (
+            <div style={{
+              position: 'fixed',
+              bottom: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(0, 0, 0, 0.8)',
+              color: 'white',
+              padding: '15px 30px',
+              borderRadius: '10px',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              zIndex: 100,
+              border: '2px solid #ff6b6b'
+            }}>
+              <div>💀 İzleyici modundasın</div>
+              <div style={{ fontSize: '14px', marginTop: '5px', opacity: 0.8 }}>🧛 Usta Vampir birini ısırıyor...</div>
             </div>
           )}
         </>
@@ -975,7 +1653,7 @@ function App() {
             zIndex: 100,
             border: '2px solid #ff6b6b'
           }}>
-            <div>⏳ Oylamalar devam ediyor...</div>
+            <div>💀 İzleyici modundasın</div>
             <div style={{ fontSize: '14px', marginTop: '5px', opacity: 0.8 }}>
               İzleyici modundasın - Oy kullanamazsın
             </div>
@@ -996,11 +1674,13 @@ function App() {
             eliminatedPlayer={votingResult?.eliminatedPlayer}
             isTie={votingResult?.isTie}
             roomCode={room?.RoomCode || room?.roomCode}
+            gameMode={votingResult?.gameMode}
+            isPlayerDead={isPlayerDead} 
             onContinue={() => {
-              // Yeni gece fazına geç
-              setGameState('game');
-              setShowPhaseTransition(true);
-              setCurrentPhase({ phase: 'Night', turn: votingResult?.nextTurn || 1 });
+              console.log('✅ VotingResult onContinue - Backend invoke VotingResult component tarafından yapıldı');
+              // VotingResult component zaten ContinueToLocationSelection/ContinueToNight invoke ediyor
+              // Burada sadece state güncellemesi gerekirse yapılır (şimdilik boş)
+              // Backend eventi (LocationSelectionStarted/NightPhaseStarted) state'i güncelleyecek
             }}
           />
         </>
@@ -1028,12 +1708,31 @@ function App() {
         />
       )}
 
-      {/* Ölü oyuncu overlay'i - 3 saniye göster sonra izleyici moda geç */}
-      {/* Ama Avcı intikam alırken gösterme! */}
+      {/* Ölü oyuncu overlay'i - Gerçek ölüm için (BAŞLIKLI) */}
       {showDeathOverlay && gameState !== 'hunter' && (
         <DeadPlayerOverlay 
           playerName={playerName}
           message={deathMessage}
+          showTitle={true}
+        />
+      )}
+      
+      {/* Gece bildirimi overlay - Genel mesajlar için (BAŞLIKSIZ) */}
+      {showNotificationOverlay && (
+        <DeadPlayerOverlay 
+          playerName={playerName}
+          message={notificationMessage}
+          showTitle={false}
+          isDeathNotification={notificationMessage?.includes('oyundan çıktı')}
+        />
+      )}
+      
+      {/* Bekleme mesajı overlay - Başlık olmadan sadece mesaj */}
+      {waitingMessage && (
+        <DeadPlayerOverlay 
+          playerName={playerName}
+          message={waitingMessage}
+          showTitle={false}
         />
       )}
     </div>
