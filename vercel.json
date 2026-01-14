@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd vampirpolis-client && npm run build",
+  "outputDirectory": "vampirpolis-client/dist",
+  "installCommand": "cd vampirpolis-client && npm install",
+  "framework": "vite"
+}
