@@ -46,26 +46,6 @@ function Lobby({ room, roomCode, playerName, onStartGameClick }) {
     <div className="lobby">
       <h1>🎮 OYUN LOBISI</h1>
       
-      {/* DEBUG INFO - SONRA SIL */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        background: 'rgba(255,0,0,0.8)',
-        color: 'white',
-        padding: '10px',
-        fontSize: '12px',
-        zIndex: 9999,
-        maxWidth: '300px'
-      }}>
-        <div>🔍 DEBUG:</div>
-        <div>PlayerName: {playerName}</div>
-        <div>IsLeader: {isLeader ? 'EVET ✅' : 'HAYIR ❌'}</div>
-        <div>Players: {room?.Players?.length}</div>
-        <div>FirstPlayer: {room?.Players?.[0]?.Name}</div>
-        <div>FirstPlayerLeader: {room?.Players?.[0]?.IsLeader ? 'YES' : 'NO'}</div>
-      </div>
-      
       <div className="room-code">
         <p>✅ ODA KODU</p>
         <h2>{roomCode}</h2>
